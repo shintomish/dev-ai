@@ -3,6 +3,14 @@
 .env
 .env.backup
 .env.production
+/vendor/
+/node_modules/
+/storage/*.key
+/public/hot
+/public/storage
+database/database.sqlite
+/.idea
+/.vscode
 .phpactor.json
 .phpunit.result.cache
 /.fleet
