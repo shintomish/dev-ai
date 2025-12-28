@@ -20,10 +20,16 @@ class Conversation extends Model
 
         $firstMessage = $this->messages()->where('role', 'user')->first();
         if ($firstMessage) {
-            $title = mb_substr($firstMessage->content, 0, 50);
-            if (mb_strlen($firstMessage->content) > 50) {
+            // 改行、タブ、複数の空白を1つの空白に置換
+            $content = preg_replace('/\s+/', ' ', $firstMessage->content);
+            $content = trim($content);
+
+            // 最初の50文字を取得
+            $title = mb_substr($content, 0, 50);
+            if (mb_strlen($content) > 50) {
                 $title .= '...';
             }
+
             $this->update(['title' => $title]);
         }
     }
