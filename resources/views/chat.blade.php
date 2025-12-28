@@ -26,6 +26,43 @@
             background: transparent;
             padding: 0;
         }
+        .message-content pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            margin: 0.5rem 0;
+            position: relative; /* 追加 */
+        }
+
+        /* コピーボタンのスタイル */
+        .copy-button {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            font-size: 0.75rem;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .message-content pre:hover .copy-button {
+            opacity: 1;
+        }
+
+        .copy-button:hover {
+            background: #2563eb;
+        }
+
+        .copy-button.copied {
+            background: #10b981;
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -87,7 +124,26 @@
                             <span class="text-sm font-medium">学習支援</span>
                         </label>
                         @if($conversation)
-                            <button onclick="deleteConversation({{ $conversation->id }})" class="ml-4 px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded">
+                            <div class="ml-4 relative">
+                                <button onclick="toggleExportMenu()" class="px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded">
+                                    ⬇️ エクスポート
+                                </button>
+                                <div id="exportMenu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                                    <a href="{{ route('chat.export', ['conversation' => $conversation->id, 'format' => 'markdown']) }}"
+                                    class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-t-lg">
+                                        📝 Markdown (.md)
+                                    </a>
+                                    <a href="{{ route('chat.export', ['conversation' => $conversation->id, 'format' => 'json']) }}"
+                                    class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                        📊 JSON (.json)
+                                    </a>
+                                    <a href="{{ route('chat.export', ['conversation' => $conversation->id, 'format' => 'txt']) }}"
+                                    class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-b-lg">
+                                        📄 テキスト (.txt)
+                                    </a>
+                                </div>
+                            </div>
+                            <button onclick="deleteConversation({{ $conversation->id }})" class="ml-2 px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded">
                                 🗑️ 削除
                             </button>
                         @endif
@@ -117,7 +173,7 @@
                                     AI
                                 </div>
                                 <div class="bg-white rounded-lg p-4 shadow-sm flex-1 message-content">
-                                    {!! formatMarkdown($msg->content) !!}
+                                    {!! formatMarkdownWithCopyButton($msg->content) !!}
                                 </div>
                             </div>
                         @endif
@@ -273,14 +329,54 @@
             return id;
         }
 
-        // レスポンスをフォーマット
+        // レスポンスをフォーマット（コピーボタン付き）
         function formatResponse(text) {
+            // コードブロック（コピーボタン付き）
+            let codeBlockId = 0;
             text = text.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
-                return `<pre><code>${escapeHtml(code.trim())}</code></pre>`;
+                const id = `code-${Date.now()}-${codeBlockId++}`;
+                const escapedCode = escapeHtml(code.trim());
+                return `
+                    <pre>
+                        <button class="copy-button" onclick="copyCode('${id}')">コピー</button>
+                        <code id="${id}">${escapedCode}</code>
+                    </pre>
+                `;
             });
+
+            // インラインコード
             text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+            // 改行
             text = text.replace(/\n/g, '<br>');
+
             return text;
+        }
+
+        // コードをコピー
+        function copyCode(id) {
+            const codeElement = document.getElementById(id);
+            const button = codeElement.previousElementSibling;
+
+            // コードを取得（HTMLエンティティをデコード）
+            const text = codeElement.textContent;
+
+            // クリップボードにコピー
+            navigator.clipboard.writeText(text).then(() => {
+                // ボタンの表示を変更
+                const originalText = button.textContent;
+                button.textContent = '✓ コピー完了';
+                button.classList.add('copied');
+
+                // 2秒後に元に戻す
+                setTimeout(() => {
+                    button.textContent = originalText;
+                    button.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                console.error('コピーに失敗しました:', err);
+                alert('コピーに失敗しました');
+            });
         }
 
         function escapeHtml(text) {
@@ -289,9 +385,20 @@
             return div.innerHTML;
         }
 
-        // 会話削除
+        // 会話削除（改善版）
         async function deleteConversation(id) {
-            if (!confirm('この会話を削除しますか？')) return;
+            // 会話のタイトルを取得
+            const convElement = document.querySelector(`a[href*="conversation=${id}"]`);
+            const title = convElement ? convElement.querySelector('.text-sm').textContent.trim() : '無題の会話';
+
+            // 確認ダイアログ
+            const confirmed = confirm(
+                `会話を削除しますか？\n\n` +
+                `タイトル: ${title}\n\n` +
+                `この操作は取り消せません。`
+            );
+
+            if (!confirmed) return;
 
             try {
                 const response = await fetch(`/chat/conversation/${id}`, {
@@ -303,7 +410,17 @@
 
                 const data = await response.json();
                 if (data.success) {
-                    window.location.href = '{{ route("chat.index") }}';
+                    // 削除成功メッセージ
+                    const message = document.createElement('div');
+                    message.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+                    message.textContent = '✅ 会話を削除しました';
+                    document.body.appendChild(message);
+
+                    // 2秒後にメッセージを削除してリダイレクト
+                    setTimeout(() => {
+                        message.remove();
+                        window.location.href = '{{ route("chat.index") }}';
+                    }, 2000);
                 }
             } catch (error) {
                 alert('削除に失敗しました: ' + error.message);
@@ -322,16 +439,36 @@
         window.addEventListener('load', () => {
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         });
+
+        // エクスポートメニュー表示切替
+        function toggleExportMenu() {
+            const menu = document.getElementById('exportMenu');
+            menu.classList.toggle('hidden');
+        }
+
+        // メニュー外クリックで閉じる
+        document.addEventListener('click', (e) => {
+            const menu = document.getElementById('exportMenu');
+            if (menu && !e.target.closest('[onclick="toggleExportMenu()"]') && !e.target.closest('#exportMenu')) {
+                menu.classList.add('hidden');
+            }
+        });
     </script>
 </body>
 </html>
 
 @php
-function formatMarkdown($text) {
-    // コードブロック
-    $text = preg_replace_callback('/```(\w+)?\n([\s\S]*?)```/', function($matches) {
+function formatMarkdownWithCopyButton($text) {
+    static $codeBlockId = 0;
+
+    // コードブロック（コピーボタン付き）
+    $text = preg_replace_callback('/```(\w+)?\n([\s\S]*?)```/', function($matches) use (&$codeBlockId) {
         $code = htmlspecialchars(trim($matches[2]));
-        return "<pre><code>{$code}</code></pre>";
+        $id = 'code-' . time() . '-' . $codeBlockId++;
+        return sprintf(
+            '<pre><button class="copy-button" onclick="copyCode(\'%s\')">コピー</button><code id="%s">%s</code></pre>',
+            $id, $id, $code
+        );
     }, $text);
 
     // インラインコード

@@ -166,6 +166,110 @@ class ChatController extends Controller
     {
         return redirect()->route('chat.index');
     }
+    /**
+     * 会話をエクスポート
+     */
+    public function export(Conversation $conversation, Request $request)
+    {
+        $format = $request->query('format', 'markdown');
+
+        $conversation->load('messages');
+
+        switch ($format) {
+            case 'json':
+                return $this->exportJson($conversation);
+            case 'txt':
+                return $this->exportText($conversation);
+            case 'markdown':
+            default:
+                return $this->exportMarkdown($conversation);
+        }
+    }
+
+    private function exportMarkdown(Conversation $conversation): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $filename = sprintf(
+            'conversation_%d_%s.md',
+            $conversation->id,
+            now()->format('Ymd_His')
+        );
+
+        return response()->streamDownload(function() use ($conversation) {
+            echo "# {$conversation->title}\n\n";
+            echo "**作成日時**: " . $conversation->created_at->format('Y-m-d H:i:s') . "\n";
+            echo "**モード**: " . ($conversation->mode === 'dev' ? '開発支援' : '学習支援') . "\n\n";
+            echo "---\n\n";
+
+            foreach ($conversation->messages as $message) {
+                if ($message->role === 'user') {
+                    echo "## 👤 ユーザー\n\n";
+                } else {
+                    echo "## 🤖 AI\n\n";
+                }
+                echo $message->content . "\n\n";
+                echo "---\n\n";
+            }
+        }, $filename, [
+            'Content-Type' => 'text/markdown',
+        ]);
+    }
+
+    private function exportJson(Conversation $conversation): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $filename = sprintf(
+            'conversation_%d_%s.json',
+            $conversation->id,
+            now()->format('Ymd_His')
+        );
+
+        $data = [
+            'id' => $conversation->id,
+            'title' => $conversation->title,
+            'mode' => $conversation->mode,
+            'created_at' => $conversation->created_at->toIso8601String(),
+            'updated_at' => $conversation->updated_at->toIso8601String(),
+            'messages' => $conversation->messages->map(fn($msg) => [
+                'role' => $msg->role,
+                'content' => $msg->content,
+                'created_at' => $msg->created_at->toIso8601String(),
+            ])->toArray(),
+        ];
+
+        return response()->streamDownload(function() use ($data) {
+            echo json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        }, $filename, [
+            'Content-Type' => 'application/json',
+        ]);
+    }
+
+    private function exportText(Conversation $conversation): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $filename = sprintf(
+            'conversation_%d_%s.txt',
+            $conversation->id,
+            now()->format('Ymd_His')
+        );
+
+        return response()->streamDownload(function() use ($conversation) {
+            echo "{$conversation->title}\n";
+            echo str_repeat('=', mb_strlen($conversation->title)) . "\n\n";
+            echo "作成日時: " . $conversation->created_at->format('Y-m-d H:i:s') . "\n";
+            echo "モード: " . ($conversation->mode === 'dev' ? '開発支援' : '学習支援') . "\n\n";
+            echo str_repeat('-', 80) . "\n\n";
+
+            foreach ($conversation->messages as $message) {
+                if ($message->role === 'user') {
+                    echo "[ユーザー]\n";
+                } else {
+                    echo "[AI]\n";
+                }
+                echo $message->content . "\n\n";
+                echo str_repeat('-', 80) . "\n\n";
+            }
+        }, $filename, [
+            'Content-Type' => 'text/plain',
+        ]);
+    }
 
     /**
      * モード別のシステムプロンプトを返す
