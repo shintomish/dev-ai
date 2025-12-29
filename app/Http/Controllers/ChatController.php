@@ -19,7 +19,6 @@ class ChatController extends Controller
         $conversation = null;
         $messages = [];
 
-        // 既存の会話を読み込み
         if ($conversationId) {
             $conversation = Conversation::with('messages')->find($conversationId);
             if ($conversation) {
@@ -27,18 +26,24 @@ class ChatController extends Controller
             }
         }
 
-        // 過去の会話一覧（最新10件）
-        $recentConversations = Conversation::orderBy('updated_at', 'desc')
+        // お気に入りと最近の会話を分けて取得
+        $favoriteConversations = Conversation::where('is_favorite', true)
+            ->orderBy('updated_at', 'desc')
+            ->limit(5)
+            ->get();
+
+        $recentConversations = Conversation::where('is_favorite', false)
+            ->orderBy('updated_at', 'desc')
             ->limit(10)
             ->get();
 
         return view('chat', [
             'conversation' => $conversation,
             'messages' => $messages,
+            'favoriteConversations' => $favoriteConversations,
             'recentConversations' => $recentConversations,
         ]);
     }
-
     /**
      * Claude APIにメッセージを送信
      */
@@ -156,6 +161,20 @@ class ChatController extends Controller
         return response()->json([
             'success' => true,
             'message' => '会話を削除しました',
+        ]);
+    }
+
+    /**
+     * お気に入りのトグル
+     */
+    public function toggleFavorite(Conversation $conversation)
+    {
+        $conversation->is_favorite = !$conversation->is_favorite;
+        $conversation->save();
+
+        return response()->json([
+            'success' => true,
+            'is_favorite' => $conversation->is_favorite,
         ]);
     }
 

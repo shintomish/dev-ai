@@ -6,6 +6,16 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>開発支援AI - Claude Chat</title>
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- highlight.js 追加 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/php.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/sql.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+
     <style>
         .message-content pre {
             background: #1e293b;
@@ -77,21 +87,57 @@
             </div>
 
             <div class="flex-1 overflow-y-auto p-4">
+                <!-- お気に入りセクション -->
+                @if($favoriteConversations->isNotEmpty())
+                    <h3 class="text-xs font-semibold text-gray-500 uppercase mb-2">⭐ お気に入り</h3>
+                    <div class="space-y-2 mb-4">
+                        @foreach($favoriteConversations as $conv)
+                            <div class="flex items-center gap-2">
+                                <button onclick="toggleFavorite({{ $conv->id }}, event)"
+                                        class="flex-shrink-0 text-xl hover:scale-110 transition-transform"
+                                        title="お気に入り解除">
+                                    ⭐
+                                </button>
+                                <a href="{{ route('chat.index', ['conversation' => $conv->id]) }}"
+                                class="flex-1 block p-3 rounded-lg hover:bg-gray-100 {{ $conversation && $conversation->id === $conv->id ? 'bg-blue-50 border border-blue-200' : 'bg-white border border-gray-200' }}">
+                                    <div class="text-sm font-medium text-gray-900 truncate">
+                                        {{ $conv->title ?? '無題の会話' }}
+                                    </div>
+                                    <div class="text-xs text-gray-500 mt-1">
+                                        {{ $conv->updated_at->diffForHumans() }}
+                                    </div>
+                                    <div class="text-xs text-gray-400 mt-1">
+                                        {{ $conv->mode === 'dev' ? '🔧 開発支援' : '📚 学習支援' }}
+                                    </div>
+                                </a>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+
+                <!-- 最近の会話セクション -->
                 <h3 class="text-xs font-semibold text-gray-500 uppercase mb-2">最近の会話</h3>
                 <div class="space-y-2">
                     @forelse($recentConversations as $conv)
-                        <a href="{{ route('chat.index', ['conversation' => $conv->id]) }}"
-                           class="block p-3 rounded-lg hover:bg-gray-100 {{ $conversation && $conversation->id === $conv->id ? 'bg-blue-50 border border-blue-200' : 'bg-white border border-gray-200' }}">
-                            <div class="text-sm font-medium text-gray-900 truncate">
-                                {{ $conv->title ?? '無題の会話' }}
-                            </div>
-                            <div class="text-xs text-gray-500 mt-1">
-                                {{ $conv->updated_at->diffForHumans() }}
-                            </div>
-                            <div class="text-xs text-gray-400 mt-1">
-                                {{ $conv->mode === 'dev' ? '🔧 開発支援' : '📚 学習支援' }}
-                            </div>
-                        </a>
+                        <div class="flex items-center gap-2">
+                            <button onclick="toggleFavorite({{ $conv->id }}, event)"
+                                    class="flex-shrink-0 text-xl hover:scale-110 transition-transform"
+                                    title="お気に入りに追加">
+                                ☆
+                            </button>
+                            <a href="{{ route('chat.index', ['conversation' => $conv->id]) }}"
+                            class="flex-1 block p-3 rounded-lg hover:bg-gray-100 {{ $conversation && $conversation->id === $conv->id ? 'bg-blue-50 border border-blue-200' : 'bg-white border border-gray-200' }}">
+                                <div class="text-sm font-medium text-gray-900 truncate">
+                                    {{ $conv->title ?? '無題の会話' }}
+                                </div>
+                                <div class="text-xs text-gray-500 mt-1">
+                                    {{ $conv->updated_at->diffForHumans() }}
+                                </div>
+                                <div class="text-xs text-gray-400 mt-1">
+                                    {{ $conv->mode === 'dev' ? '🔧 開発支援' : '📚 学習支援' }}
+                                </div>
+                            </a>
+                        </div>
                     @empty
                         <p class="text-sm text-gray-500 text-center py-4">会話履歴がありません</p>
                     @endforelse
@@ -325,21 +371,30 @@
             }
 
             messagesDiv.appendChild(div);
+
+            // シンタックスハイライトを適用
+            if (type === 'assistant' && !isLoading) {
+                div.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+            }
             div.scrollIntoView({ behavior: 'smooth', block: 'end' });
             return id;
         }
 
         // レスポンスをフォーマット（コピーボタン付き）
+        // レスポンスをフォーマット（シンタックスハイライト付き）
         function formatResponse(text) {
-            // コードブロック（コピーボタン付き）
+            // コードブロック（言語指定対応）
             let codeBlockId = 0;
             text = text.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
                 const id = `code-${Date.now()}-${codeBlockId++}`;
                 const escapedCode = escapeHtml(code.trim());
+                const langClass = lang ? `language-${lang}` : '';
                 return `
                     <pre>
                         <button class="copy-button" onclick="copyCode('${id}')">コピー</button>
-                        <code id="${id}">${escapedCode}</code>
+                        <code id="${id}" class="${langClass}">${escapedCode}</code>
                     </pre>
                 `;
             });
@@ -427,19 +482,6 @@
             }
         }
 
-        // Enterキーで送信
-        messageInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                chatForm.requestSubmit();
-            }
-        });
-
-        // 初回ロード時に最下部にスクロール
-        window.addEventListener('load', () => {
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        });
-
         // エクスポートメニュー表示切替
         function toggleExportMenu() {
             const menu = document.getElementById('exportMenu');
@@ -453,6 +495,70 @@
                 menu.classList.add('hidden');
             }
         });
+
+        // Enterキーで送信
+        messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                chatForm.requestSubmit();
+            }
+        });
+
+        // 初回ロード時に最下部にスクロール
+        // 初回ロード時にシンタックスハイライトを適用
+        window.addEventListener('load', () => {
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+            // 既存のコードブロックにハイライトを適用
+            document.querySelectorAll('pre code').forEach((block) => {
+                hljs.highlightElement(block);
+            });
+        });
+
+        // お気に入りトグル（デバッグ版）
+        async function toggleFavorite(id, event) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            console.log('クリックされた会話ID:', id);
+            const button = event.currentTarget;
+
+            try {
+                const response = await fetch(`/chat/conversation/${id}/favorite`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                const data = await response.json();
+                console.log('APIレスポンス:', data);
+
+                if (data.success) {
+                    // ボタンの表示を即座に更新
+                    if (data.is_favorite) {
+                        button.textContent = '⭐';
+                        button.title = 'お気に入り解除';
+                        console.log('お気に入りに追加しました:', id);
+                    } else {
+                        button.textContent = '☆';
+                        button.title = 'お気に入りに追加';
+                        console.log('お気に入りから削除しました:', id);
+                    }
+
+                    // 1秒後にリロードして並び順を更新
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1000);
+                } else {
+                    alert('お気に入りの切替に失敗しました');
+                }
+            } catch (error) {
+                console.error('お気に入り切替エラー:', error);
+                alert('エラーが発生しました: ' + error.message);
+            }
+        }
     </script>
 </body>
 </html>
@@ -461,13 +567,15 @@
 function formatMarkdownWithCopyButton($text) {
     static $codeBlockId = 0;
 
-    // コードブロック（コピーボタン付き）
+    // コードブロック（言語指定対応）
     $text = preg_replace_callback('/```(\w+)?\n([\s\S]*?)```/', function($matches) use (&$codeBlockId) {
+        $lang = $matches[1] ?? '';
         $code = htmlspecialchars(trim($matches[2]));
         $id = 'code-' . time() . '-' . $codeBlockId++;
+        $langClass = $lang ? "language-{$lang}" : '';
         return sprintf(
-            '<pre><button class="copy-button" onclick="copyCode(\'%s\')">コピー</button><code id="%s">%s</code></pre>',
-            $id, $id, $code
+            '<pre><button class="copy-button" onclick="copyCode(\'%s\')">コピー</button><code id="%s" class="%s">%s</code></pre>',
+            $id, $id, $langClass, $code
         );
     }, $text);
 

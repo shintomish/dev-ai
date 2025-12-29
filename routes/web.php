@@ -18,3 +18,6 @@ Route::get('/chat/new', [ChatController::class, 'newConversation'])->name('chat.
 // エクスポートルート
 Route::get('/chat/conversation/{conversation}/export', [ChatController::class, 'export'])->name('chat.export');
 
+// お気に入り
+Route::post('/chat/conversation/{conversation}/favorite', [ChatController::class, 'toggleFavorite'])->name('chat.favorite');
+
