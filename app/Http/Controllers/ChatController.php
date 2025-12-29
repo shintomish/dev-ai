@@ -20,28 +20,33 @@ class ChatController extends Controller
         $messages = [];
 
         if ($conversationId) {
-            $conversation = Conversation::with('messages')->find($conversationId);
+            $conversation = Conversation::with(['messages', 'tags'])->find($conversationId);
             if ($conversation) {
                 $messages = $conversation->messages;
             }
         }
 
-        // お気に入りと最近の会話を分けて取得
         $favoriteConversations = Conversation::where('is_favorite', true)
+            ->with('tags')
             ->orderBy('updated_at', 'desc')
             ->limit(5)
             ->get();
 
         $recentConversations = Conversation::where('is_favorite', false)
+            ->with('tags')
             ->orderBy('updated_at', 'desc')
             ->limit(10)
             ->get();
+
+        // すべてのタグを取得
+        $allTags = \App\Models\Tag::orderBy('name')->get();
 
         return view('chat', [
             'conversation' => $conversation,
             'messages' => $messages,
             'favoriteConversations' => $favoriteConversations,
             'recentConversations' => $recentConversations,
+            'allTags' => \App\Models\Tag::orderBy('name')->get(), // ← この行を追加
         ]);
     }
     /**
@@ -287,6 +292,38 @@ class ChatController extends Controller
             }
         }, $filename, [
             'Content-Type' => 'text/plain',
+        ]);
+    }
+
+    /**
+     * タグを追加
+     */
+    public function attachTag(Conversation $conversation, Request $request)
+    {
+        $request->validate([
+            'tag_id' => 'required|exists:tags,id',
+        ]);
+
+        $conversation->tags()->attach($request->tag_id);
+
+        return response()->json([
+            'success' => true,
+        ]);
+    }
+
+    /**
+     * タグを削除
+     */
+    public function detachTag(Conversation $conversation, Request $request)
+    {
+        $request->validate([
+            'tag_id' => 'required|exists:tags,id',
+        ]);
+
+        $conversation->tags()->detach($request->tag_id);
+
+        return response()->json([
+            'success' => true,
         ]);
     }
 

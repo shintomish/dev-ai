@@ -21,3 +21,7 @@ Route::get('/chat/conversation/{conversation}/export', [ChatController::class, '
 // お気に入り
 Route::post('/chat/conversation/{conversation}/favorite', [ChatController::class, 'toggleFavorite'])->name('chat.favorite');
 
+// タグの追加・削除
+Route::post('/chat/conversation/{conversation}/tag/attach', [ChatController::class, 'attachTag'])->name('chat.tag.attach');
+Route::post('/chat/conversation/{conversation}/tag/detach', [ChatController::class, 'detachTag'])->name('chat.tag.detach');
+

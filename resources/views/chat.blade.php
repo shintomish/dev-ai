@@ -155,10 +155,21 @@
                         <p class="text-sm text-gray-600">
                             @if($conversation)
                                 {{ $conversation->title ?? '会話中' }}
+                                <!-- タグ表示 -->
+                                <div class="flex gap-1 mt-2">
+                                    @foreach($conversation->tags as $tag)
+                                        <span class="px-2 py-1 text-xs rounded-full bg-{{ $tag->color }}-100 text-{{ $tag->color }}-800">
+                                            {{ $tag->name }}
+                                        </span>
+                                    @endforeach
+                                    <button onclick="openTagModal()" class="px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded">
+                                        + タグ
+                                    </button>
+                                </div>
                             @else
                                 Laravel / Linux / Git / VBA 相談
                             @endif
-                        </p>
+                            </p>
                     </div>
                     <div class="flex gap-2">
                         <label class="flex items-center gap-2 cursor-pointer">
@@ -559,7 +570,108 @@
                 alert('エラーが発生しました: ' + error.message);
             }
         }
+
+        // タグモーダル
+        function openTagModal() {
+            document.getElementById('tagModal').classList.remove('hidden');
+        }
+
+        function closeTagModal() {
+            document.getElementById('tagModal').classList.add('hidden');
+        }
+
+        function saveAndCloseTagModal() {
+            closeTagModal();
+            location.reload();
+        }
+
+        async function toggleTag(tagId, tagName) {
+    alert('関数が呼ばれました！ タグ: ' + tagName);
+
+    console.log('=== toggleTag 開始 ===');
+    console.log('引数 - tagId:', tagId, 'tagName:', tagName);
+
+            const conversationId = {{ $conversation->id ?? 'null' }};
+            if (!conversationId) return;
+
+            const button = document.getElementById(`tag-btn-${tagId}`);
+            const hasTag = button.dataset.attached === 'true';
+
+            console.log(`タグ ${tagName} (ID: ${tagId}):`, hasTag ? '削除' : '追加');
+
+            try {
+                const url = hasTag
+                    ? `/chat/conversation/${conversationId}/tag/detach`
+                    : `/chat/conversation/${conversationId}/tag/attach`;
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ tag_id: tagId }),
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // data-attached を更新
+                    button.dataset.attached = hasTag ? 'false' : 'true';
+
+                    // 見た目を更新
+                    if (hasTag) {
+                        // タグ削除 → 白背景
+                        button.className = 'px-3 py-1 text-sm rounded-full border-2 bg-white text-gray-700 border-gray-300 hover:shadow';
+                    } else {
+                        // タグ追加 → 色付き（仮で青色）
+                        button.className = 'px-3 py-1 text-sm rounded-full border-2 bg-blue-100 text-blue-800 border-blue-300 hover:shadow';
+                    }
+
+                    console.log('✅ タグ更新成功');
+                } else {
+                    console.error('❌ タグ更新失敗:', data);
+                }
+            } catch (error) {
+                console.error('❌ タグ切替エラー:', error);
+            }
+        }
     </script>
+
+    <!-- タグ編集モーダル -->
+    @if($conversation)
+    <div id="tagModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full">
+            <h3 class="text-lg font-bold mb-4">タグを編集</h3>
+
+            <div class="space-y-2 mb-4">
+                <p class="text-sm text-gray-600">タグを選択してください</p>
+                <div class="flex flex-wrap gap-2">
+                    @foreach($allTags as $tag)
+                        @php
+                            $isAttached = $conversation->tags->contains($tag->id);
+                        @endphp
+                        <button type="button"
+                            onclick="alert('ボタンクリック: {{ $tag->name }}'); toggleTag({{ $tag->id }}, '{{ $tag->name }}');"
+                            id="tag-btn-{{ $tag->id }}"
+                            data-attached="{{ $isAttached ? 'true' : 'false' }}"
+                            class="px-3 py-1 text-sm rounded-full border-2 {{ $isAttached ? 'bg-blue-100 text-blue-800 border-blue-300' : 'bg-white text-gray-700 border-gray-300' }} hover:shadow">
+                            {{ $tag->name }}
+                        </button>
+                    @endforeach
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2">
+                <button type="button" onclick="closeTagModal()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">
+                    キャンセル
+                </button>
+                <button type="button" onclick="saveAndCloseTagModal()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    完了
+                </button>
+            </div>
+        </div>
+    </div>
+    @endif
 </body>
 </html>
 
