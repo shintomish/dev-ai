@@ -385,9 +385,9 @@
 
             // シンタックスハイライトを適用
             if (type === 'assistant' && !isLoading) {
-                div.querySelectorAll('pre code').forEach((block) => {
-                    hljs.highlightElement(block);
-                });
+                // div.querySelectorAll('pre code').forEach((block) => {
+                //     hljs.highlightBlock(block);
+                // });
             }
             div.scrollIntoView({ behavior: 'smooth', block: 'end' });
             return id;
@@ -395,8 +395,8 @@
 
         // レスポンスをフォーマット（コピーボタン付き）
         // レスポンスをフォーマット（シンタックスハイライト付き）
+        // レスポンスをフォーマット（安全版）
         function formatResponse(text) {
-            // コードブロック（言語指定対応）
             let codeBlockId = 0;
             text = text.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
                 const id = `code-${Date.now()}-${codeBlockId++}`;
@@ -405,20 +405,16 @@
                 return `
                     <pre>
                         <button class="copy-button" onclick="copyCode('${id}')">コピー</button>
-                        <code id="${id}" class="${langClass}">${escapedCode}</code>
+                        <code id="${id}" class="hljs ${langClass}">${escapedCode}</code>
                     </pre>
                 `;
             });
 
-            // インラインコード
             text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
-
-            // 改行
             text = text.replace(/\n/g, '<br>');
 
             return text;
         }
-
         // コードをコピー
         function copyCode(id) {
             const codeElement = document.getElementById(id);
@@ -522,7 +518,7 @@
 
             // 既存のコードブロックにハイライトを適用
             document.querySelectorAll('pre code').forEach((block) => {
-                hljs.highlightElement(block);
+                hljs.highlightBlock(block);  // ← highlightElement から変更
             });
         });
 
@@ -586,10 +582,10 @@
         }
 
         async function toggleTag(tagId, tagName) {
-    alert('関数が呼ばれました！ タグ: ' + tagName);
+    // alert('関数が呼ばれました！ タグ: ' + tagName);
 
-    console.log('=== toggleTag 開始 ===');
-    console.log('引数 - tagId:', tagId, 'tagName:', tagName);
+    // console.log('=== toggleTag 開始 ===');
+    // console.log('引数 - tagId:', tagId, 'tagName:', tagName);
 
             const conversationId = {{ $conversation->id ?? 'null' }};
             if (!conversationId) return;
