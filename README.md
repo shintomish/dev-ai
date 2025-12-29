@@ -58,6 +58,24 @@ docker compose exec app php artisan migrate
 ```
 http://localhost:8038/chat
 ```
+## 新機能（2025/12/29 追加）
+
+### シンタックスハイライト
+- highlight.js による色付きコード表示
+- 対応言語: PHP, JavaScript, Bash, SQL, Python
+
+### お気に入り機能
+- ⭐マークで重要な会話を管理
+- お気に入りセクションに自動的に表示
+
+### 会話タグ機能
+- Laravel, PHP, Git, Linux, VBA, JavaScript, SQL, Docker
+- 複数タグの付け替えが可能
+- タグでの絞り込み（今後実装予定）
+
+### 会話検索機能
+- タイトルまたはメッセージ内容での検索
+- リアルタイム検索結果表示
 
 ## 使い方
 
