@@ -1,6 +1,6 @@
-# 開発支援AI
+# 開発支援AIチャットアプリ (DevAI)
 
-Laravel + Claude API を使った開発者向けAIチャットアプリケーション
+Laravel + Claude APIを使った開発支援チャットアプリケーション
 
 ## 機能
 
@@ -10,159 +10,150 @@ Laravel + Claude API を使った開発者向けAIチャットアプリケーシ
 - 📚 学習支援モード（初心者向け）
 - 🗂️ 過去の会話の検索・再開
 
+## 機能
+
+- ✅ Claude API統合（Sonnet 4）
+- ✅ ストリーミングレスポンス
+- ✅ ファイルアップロード対応（テキスト、コード、ログファイル等）
+- ✅ 会話履歴管理
+- ✅ お気に入り機能
+- ✅ タグ管理
+- ✅ エクスポート機能（Markdown, JSON, Text）
+- ✅ コードシンタックスハイライト
+- ✅ マークダウン表示
+
 ## 技術スタック
 
-- **Backend**: Laravel 12, PHP 8.2
-- **Database**: MariaDB 11
-- **AI**: Claude API (Anthropic)
-- **Frontend**: Blade + Tailwind CSS
-- **Infrastructure**: Docker Compose
+- **Backend**: Laravel 11
+- **Frontend**: Tailwind CSS, Alpine.js
+- **Database**: MySQL 8.0
+- **API**: Anthropic Claude API
+- **Infrastructure**: Docker, Docker Compose
 
 ## セットアップ
 
-### 1. リポジトリクローン
+### 前提条件
+
+- Docker Desktop
+- Git
+- Composer
+- Node.js 18+
+
+### インストール手順
+
+1. **リポジトリをクローン**
 ```bash
 git clone https://github.com/shintomish/dev-ai.git
 cd dev-ai
 ```
 
-### 2. 環境変数設定
+2. **依存関係のインストール**
+```bash
+composer install
+npm install
+```
+
+3. **環境変数の設定**
 ```bash
 cp .env.example .env
 ```
 
 `.env` を編集して以下を設定：
-```ini
-ANTHROPIC_API_KEY=sk-ant-xxxxx
-CLAUDE_MODEL=claude-sonnet-4-20250514
+- `APP_KEY`: `php artisan key:generate` で生成
+- `ANTHROPIC_API_KEY`: Anthropic APIキー
 
-DB_CONNECTION=mysql
-DB_HOST=db
-DB_PORT=3306
-DB_DATABASE=dev_ai
-DB_USERNAME=devuser
-DB_PASSWORD=devpass
-```
-
-### 3. Docker起動
+4. **Dockerコンテナの起動**
 ```bash
 docker compose up -d
 ```
 
-### 4. マイグレーション実行
+5. **データベースのセットアップ**
 ```bash
+# マイグレーション実行
 docker compose exec app php artisan migrate
+
+# 初期データのインポート（オプション）
+docker compose exec -T db mysql -u root -proot dev_ai < database/backups/dev_ai_20260101.sql
 ```
 
-### 5. アクセス
+6. **アクセス**
 ```
-http://localhost:8038/chat
+http://localhost:8000/chat
 ```
-## 新機能（2025/12/29 追加）
-
-### シンタックスハイライト
-- highlight.js による色付きコード表示
-- 対応言語: PHP, JavaScript, Bash, SQL, Python
-
-### お気に入り機能
-- ⭐マークで重要な会話を管理
-- お気に入りセクションに自動的に表示
-
-### 会話タグ機能
-- Laravel, PHP, Git, Linux, VBA, JavaScript, SQL, Docker
-- 複数タグの付け替えが可能
-- タグでの絞り込み（今後実装予定）
-
-### 会話検索機能
-- タイトルまたはメッセージ内容での検索
-- リアルタイム検索結果表示
-
-## 使い方
-
-### モード切替
-
-- **開発支援モード**: Laravel/Linux/Git/VBA の技術相談
-- **学習支援モード**: プログラミング初心者向けの丁寧な説明
-
-### 便利なコマンド
-```bash
-# キャッシュクリア
-docker compose exec app php artisan cache:clear
-
-# マイグレーションリセット
-docker compose exec app php artisan migrate:fresh
-
-# ログ確認
-docker compose logs -f app
-
-# Tinker（DBデバッグ）
-docker compose exec app php artisan tinker
-```
-
-## データベース
-
-### DBeaver で接続
-```
-Host:       127.0.0.1
-Port:       4306
-Database:   dev_ai
-Username:   root
-Password:   root
-```
-
-### テーブル構成
-
-- `conversations`: 会話セッション
-- `messages`: メッセージ履歴（user/assistant）
 
 ## 開発
 
-### エイリアス設定（推奨）
-
-`~/.bashrc` に追加：
+### コンテナの管理
 ```bash
-alias dart='docker compose exec app php artisan'
-alias dcomposer='docker compose exec app composer'
-alias dtinker='docker compose exec app php artisan tinker'
-alias dlogs='docker compose logs -f app'
-```
+# 起動
+docker compose up -d
 
-反映：
-```bash
-source ~/.bashrc
-```
+# 停止
+docker compose down
 
-使用例：
-```bash
-dart migrate
-dart cache:clear
-dtinker
-```
+# ログ確認
+docker compose logs -f
 
-## トラブルシューティング
-
-### Permission denied エラー
-```bash
-sudo chmod -R 775 storage bootstrap/cache
-sudo chown -R $USER:www-data storage bootstrap/cache
+# 再起動
 docker compose restart
 ```
 
-### DB接続エラー
-```bash
-# コンテナ再起動
-docker compose down
-docker compose up -d
-
-# 接続確認
-docker compose exec app php artisan tinker
->>> DB::connection()->getPdo();
+### データベース接続（DBeaver）
 ```
+Host: 127.0.0.1
+Port: 3307
+Database: dev_ai
+Username: devuser
+Password: devpass
+```
+
+### キャッシュクリア
+```bash
+docker compose exec app php artisan config:clear
+docker compose exec app php artisan cache:clear
+docker compose exec app php artisan view:clear
+```
+
+## ディレクトリ構造
+```
+dev-ai/
+├── app/
+│   ├── Http/Controllers/
+│   │   ├── ChatController.php
+│   │   └── ConversationController.php
+│   └── Models/
+│       ├── Conversation.php
+│       ├── Message.php
+│       ├── Attachment.php
+│       └── Tag.php
+├── database/
+│   ├── migrations/
+│   └── backups/
+├── resources/
+│   └── views/
+│       └── chat.blade.php
+├── docker/
+│   ├── nginx/
+│   └── php/
+├── docker-compose.yml
+└── Dockerfile
+```
+
+## 今後の予定
+
+- [ ] 会話検索機能
+- [ ] ダークモード
+- [ ] マークダウンプレビュー改善
+- [ ] 画像アップロード対応
+- [ ] APIトークン使用量表示
+- [ ] マルチユーザー対応
+- [ ] API エンドポイント
+- [ ] Web公開
 
 ## ライセンス
 
-Private（個人利用）
+MIT License
 
 ## 作成者
 
-[@shintomish](https://github.com/shintomish)
+shintomish
