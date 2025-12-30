@@ -12,6 +12,8 @@ services:
       - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
     networks:
       - dev_ai_network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       - DB_HOST=db
       - DB_PORT=3306
@@ -44,6 +46,7 @@ services:
       MYSQL_PASSWORD: devpass
     ports:
       - "4306:3306"
+      - "3307:3306"  # ← この行を追加
     volumes:
       - dbdata:/var/lib/mysql
     networks:
