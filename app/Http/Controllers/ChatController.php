@@ -21,35 +21,33 @@ class ChatController extends Controller
     public function index(Request $request)
     {
         $conversationId = $request->query('conversation');
-        $conversation = null;
-        $messages = [];
 
-        if ($conversationId) {
-            $conversation = Conversation::with(['messages.attachments', 'tags'])->find($conversationId);
-            if ($conversation) {
-                $messages = $conversation->messages;
-            }
-        }
+        $conversation = $conversationId
+            ? Conversation::findOrFail($conversationId)
+            : null;
 
-        $favoriteConversations = Conversation::where('is_favorite', true)
-            ->with('tags')
-            ->orderBy('updated_at', 'desc')
-            ->limit(5)
-            ->get();
+        $messages = $conversation
+            ? $conversation->messages()->orderBy('created_at', 'asc')->get()
+            : collect();
 
-        $recentConversations = Conversation::where('is_favorite', false)
-            ->with('tags')
-            ->orderBy('updated_at', 'desc')
+        $recentConversations = Conversation::latest()
+            ->where('is_favorite', false)
             ->limit(10)
             ->get();
 
-        return view('chat', [
-            'conversation' => $conversation,
-            'messages' => $messages,
-            'favoriteConversations' => $favoriteConversations,
-            'recentConversations' => $recentConversations,
-            'allTags' => \App\Models\Tag::orderBy('name')->get(),
-        ]);
+        $favoriteConversations = Conversation::where('is_favorite', true)
+            ->latest()
+            ->get();
+
+        $allTags = Tag::all();
+
+        return view('chat', compact(
+            'conversation',
+            'messages',
+            'recentConversations',
+            'favoriteConversations',
+            'allTags'
+        ));
     }
 
     /**
@@ -393,6 +391,31 @@ class ChatController extends Controller
         return response()->json([
             'success' => true,
             'is_favorite' => $conversation->is_favorite,
+        ]);
+    }
+
+    /**
+     * 新しい会話を開始
+     */
+    public function new()
+    {
+        $recentConversations = Conversation::latest()
+            ->where('is_favorite', false)
+            ->limit(10)
+            ->get();
+
+        $favoriteConversations = Conversation::where('is_favorite', true)
+            ->latest()
+            ->get();
+
+        $allTags = Tag::all();
+
+        return view('chat', [
+            'conversation' => null,
+            'messages' => collect(),
+            'recentConversations' => $recentConversations,
+            'favoriteConversations' => $favoriteConversations,
+            'allTags' => $allTags,
         ]);
     }
 

@@ -14,7 +14,10 @@ Route::get('/', function () {
 
 // チャット画面
 Route::get('/chat', [ChatController::class, 'index'])->name('chat.index');
-Route::get('/chat/new', [ChatController::class, 'new'])->name('chat.new');
+// Route::get('/chat/new', [ChatController::class, 'new'])->name('chat.new');
+Route::get('/chat/new', function() {
+    return redirect()->route('chat.index');
+})->name('chat.new');
 Route::post('/chat/send', [ChatController::class, 'send'])->name('chat.send');
 Route::post('/chat/send-stream', [ChatController::class, 'sendStream'])->name('chat.send.stream');
 
