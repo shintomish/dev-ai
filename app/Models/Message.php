@@ -3,15 +3,30 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Message extends Model
 {
-    protected $fillable = ['conversation_id', 'role', 'content', 'metadata'];
-    protected $casts = ['metadata' => 'array'];
+    protected $fillable = [
+        'conversation_id',
+        'role',
+        'content',
+        'metadata',
+    ];
 
-    public function conversation(): BelongsTo
+    protected $casts = [
+        'metadata' => 'array',
+    ];
+
+    public function conversation()
     {
         return $this->belongsTo(Conversation::class);
+    }
+
+    /**
+     * このメッセージに添付されたファイル
+     */
+    public function attachments()
+    {
+        return $this->hasMany(Attachment::class);
     }
 }

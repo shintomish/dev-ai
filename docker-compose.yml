@@ -1,47 +1,58 @@
+# version: '3.8'
 services:
   app:
-    image: php:8.2-fpm
     build:
       context: .
-      dockerfile: docker/php/Dockerfile  # Dockerfileを使用
-    container_name: dev-ai-app  # container_nameも追加
+      dockerfile: Dockerfile
+    container_name: dev_ai_app
+    restart: unless-stopped
+    working_dir: /var/www/html
     volumes:
       - ./:/var/www/html
+      - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
     networks:
-      - dev-ai-network  # ← これを追加
-    entrypoint: >
-      /bin/sh -c "
-      chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache &&
-      chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache &&
-      php-fpm
-      "
-  web:
-    image: nginx:stable
-    container_name: dev-ai-web
+      - dev_ai_network
+    environment:
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=dev_ai
+      - DB_USERNAME=devuser
+      - DB_PASSWORD=devpass
+
+  webserver:
+    image: nginx:alpine
+    container_name: dev_ai_nginx
+    restart: unless-stopped
     ports:
-      - "8038:80"
+      - "8000:80"
     volumes:
-      - .:/var/www/html
+      - ./:/var/www/html
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - dev_ai_network
     depends_on:
       - app
-    networks:
-      - dev-ai-network
 
   db:
-    image: mariadb:11
-    container_name: dev-ai-db
-    restart: always
+    image: mysql:8.0
+    container_name: dev_ai_db
+    restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: dev_ai
+      MYSQL_ROOT_PASSWORD: root
       MYSQL_USER: devuser
       MYSQL_PASSWORD: devpass
     ports:
       - "4306:3306"
+    volumes:
+      - dbdata:/var/lib/mysql
     networks:
-      - dev-ai-network
+      - dev_ai_network
 
 networks:
-  dev-ai-network:
+  dev_ai_network:
     driver: bridge
+
+volumes:
+  dbdata:
+    driver: local

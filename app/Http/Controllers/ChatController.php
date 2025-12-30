@@ -4,9 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Conversation;
 use App\Models\Message;
+use App\Models\Attachment;
+use App\Models\Tag;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use GuzzleHttp\Client;
 
 class ChatController extends Controller
 {
@@ -20,7 +25,7 @@ class ChatController extends Controller
         $messages = [];
 
         if ($conversationId) {
-            $conversation = Conversation::with(['messages', 'tags'])->find($conversationId);
+            $conversation = Conversation::with(['messages.attachments', 'tags'])->find($conversationId);
             if ($conversation) {
                 $messages = $conversation->messages;
             }
@@ -38,62 +43,100 @@ class ChatController extends Controller
             ->limit(10)
             ->get();
 
-        // すべてのタグを取得
-        $allTags = \App\Models\Tag::orderBy('name')->get();
-
         return view('chat', [
             'conversation' => $conversation,
             'messages' => $messages,
             'favoriteConversations' => $favoriteConversations,
             'recentConversations' => $recentConversations,
-            'allTags' => \App\Models\Tag::orderBy('name')->get(), // ← この行を追加
+            'allTags' => \App\Models\Tag::orderBy('name')->get(),
         ]);
     }
+
     /**
-     * Claude APIにメッセージを送信
+     * Claude APIにメッセージを送信（通常版・ファイル対応）
      */
     public function send(Request $request)
     {
+        // 1. バリデーション
         $request->validate([
             'message' => 'required|string|max:10000',
             'mode' => 'required|in:dev,study',
             'conversation_id' => 'nullable|exists:conversations,id',
+            'files.*' => 'nullable|file|max:5120', // 5MB まで
         ]);
 
+        // 2. 変数取得
         $messageText = $request->input('message');
         $mode = $request->input('mode');
         $conversationId = $request->input('conversation_id');
 
-        // 会話の取得または作成
+        // 3. 会話取得または作成
         if ($conversationId) {
             $conversation = Conversation::findOrFail($conversationId);
         } else {
             $conversation = Conversation::create(['mode' => $mode]);
         }
 
-        // ユーザーメッセージを保存
+        // 4. ユーザーメッセージ保存
         $userMessage = Message::create([
             'conversation_id' => $conversation->id,
             'role' => 'user',
             'content' => $messageText,
         ]);
 
-        // タイトル自動生成（最初のメッセージの場合）
+        // 5. ファイルアップロード処理
+        $uploadedFiles = [];
+        if ($request->hasFile('files')) {
+            foreach ($request->file('files') as $file) {
+                $originalName = $file->getClientOriginalName();
+                $filename = time() . '_' . $originalName;
+                $path = $file->storeAs('attachments', $filename, 'public');
+
+                // テキストファイルの場合は内容を読み込む
+                $content = null;
+                $mimeType = $file->getMimeType();
+                if (str_starts_with($mimeType, 'text/') ||
+                    in_array($file->getClientOriginalExtension(), ['log', 'txt', 'php', 'js', 'py', 'java', 'cpp', 'h', 'md', 'json', 'xml', 'yaml', 'yml'])) {
+                    $content = file_get_contents($file->getRealPath());
+                }
+
+                // 添付ファイルを保存
+                $attachment = Attachment::create([
+                    'message_id' => $userMessage->id,
+                    'filename' => $path,
+                    'original_filename' => $originalName,
+                    'mime_type' => $mimeType,
+                    'size' => $file->getSize(),
+                    'content' => $content,
+                ]);
+
+                $uploadedFiles[] = [
+                    'name' => $originalName,
+                    'size' => $attachment->human_readable_size,
+                    'content' => $content,
+                ];
+            }
+        }
+
+        // 6. メッセージにファイル内容を追加
+        $fullMessage = $messageText;
+        if (!empty($uploadedFiles)) {
+            $fullMessage .= "\n\n【添付ファイル】\n";
+            foreach ($uploadedFiles as $file) {
+                $fullMessage .= "\nファイル名: {$file['name']} (サイズ: {$file['size']})\n";
+                if ($file['content']) {
+                    $fullMessage .= "内容:\n```\n" . substr($file['content'], 0, 10000) . "\n```\n";
+                }
+            }
+        }
+
+        // 7. タイトル自動生成
         $conversation->generateTitle();
 
-        // 会話履歴を取得（コンテキスト用）
-        $conversationHistory = $conversation->messages()
-            ->orderBy('created_at')
-            ->get()
-            ->map(fn($msg) => [
-                'role' => $msg->role,
-                'content' => $msg->content,
-            ])
-            ->toArray();
-
-        // システムプロンプト
+        // 8. システムプロンプト
         $systemPrompt = $this->getSystemPrompt($mode);
 
+        // 9. Claude API呼び出し
         try {
             $response = Http::withHeaders([
                 'x-api-key' => config('services.anthropic.api_key'),
@@ -103,7 +146,12 @@ class ChatController extends Controller
                 'model' => config('services.anthropic.model', 'claude-sonnet-4-20250514'),
                 'max_tokens' => 4096,
                 'system' => $systemPrompt,
-                'messages' => $conversationHistory,
+                'messages' => [
+                    [
+                        'role' => 'user',
+                        'content' => $fullMessage,
+                    ],
+                ],
             ]);
 
             if ($response->successful()) {
@@ -121,7 +169,6 @@ class ChatController extends Controller
                     ],
                 ]);
 
-                // updated_atを更新
                 $conversation->touch();
 
                 return response()->json([
@@ -153,6 +200,172 @@ class ChatController extends Controller
                 'success' => false,
                 'error' => 'エラーが発生しました: ' . $e->getMessage(),
             ], 500);
+        }
+    }
+
+    /**
+     * ストリーミングでメッセージを送信
+     * ストリーミングレスポンス（ファイルアップロード非対応）
+     */
+    public function sendStream(Request $request)
+    {
+        $validated = $request->validate([
+            'message' => 'required|string|max:10000',
+            'mode' => 'required|in:dev,study',
+            'conversation_id' => 'nullable|exists:conversations,id',
+        ]);
+
+        try {
+            // 会話の取得または作成
+            if ($validated['conversation_id']) {
+                $conversation = Conversation::findOrFail($validated['conversation_id']);
+            } else {
+                $conversation = Conversation::create([
+                    'title' => Str::limit($validated['message'], 50),
+                    'mode' => $validated['mode'],
+                ]);
+            }
+
+            // ユーザーメッセージを保存
+            $userMessage = $conversation->messages()->create([
+                'role' => 'user',
+                'content' => $validated['message'],
+            ]);
+
+            // 会話履歴を取得
+            $messages = $conversation->messages()
+                ->orderBy('created_at', 'asc')
+                ->get()
+                ->map(function ($msg) {
+                    return [
+                        'role' => $msg->role,
+                        'content' => $msg->content,
+                    ];
+                })
+                ->toArray();
+
+            // システムプロンプト
+            $systemPrompt = $validated['mode'] === 'dev'
+                ? "あなたは開発支援AIアシスタントです。コードレビュー、バグ修正、実装アドバイスを提供してください。"
+                : "あなたは学習支援AIアシスタントです。分かりやすく、丁寧に説明してください。";
+
+            // ストリーミングレスポンス
+            return response()->stream(function () use ($messages, $systemPrompt, $conversation) {
+                $client = new \GuzzleHttp\Client();
+
+                try {
+                    $response = $client->post('https://api.anthropic.com/v1/messages', [
+                        'headers' => [
+                            'x-api-key' => config('services.anthropic.api_key'),
+                            'anthropic-version' => '2023-06-01',
+                            'content-type' => 'application/json',
+                        ],
+                        'json' => [
+                            'model' => config('services.anthropic.model'),
+                            'max_tokens' => 4096,
+                            'system' => $systemPrompt,
+                            'messages' => $messages,
+                            'stream' => true,
+                        ],
+                        'stream' => true,
+                    ]);
+
+                    $body = $response->getBody();
+                    $fullResponse = '';
+
+                    while (!$body->eof()) {
+                        $chunk = $body->read(1024);
+                        $lines = explode("\n", $chunk);
+
+                        foreach ($lines as $line) {
+                            $line = trim($line);
+
+                            if (empty($line) || !str_starts_with($line, 'data: ')) {
+                                continue;
+                            }
+
+                            $data = substr($line, 6);
+
+                            if ($data === '[DONE]') {
+                                break;
+                            }
+
+                            try {
+                                $json = json_decode($data, true);
+
+                                if (isset($json['type'])) {
+                                    if ($json['type'] === 'content_block_delta') {
+                                        if (isset($json['delta']['text'])) {
+                                            $text = $json['delta']['text'];
+                                            $fullResponse .= $text;
+
+                                            echo "data: " . json_encode([
+                                                'text' => $text,
+                                                'done' => false,
+                                            ]) . "\n\n";
+
+                                            if (ob_get_level() > 0) {
+                                                ob_flush();
+                                            }
+                                            flush();
+                                        }
+                                    } elseif ($json['type'] === 'message_stop') {
+                                        break;
+                                    }
+                                }
+                            } catch (\Exception $e) {
+                                \Log::error('Stream parse error: ' . $e->getMessage());
+                            }
+                        }
+                    }
+
+                    // アシスタントメッセージを保存
+                    $conversation->messages()->create([
+                        'role' => 'assistant',
+                        'content' => $fullResponse,
+                    ]);
+
+                    // 完了通知
+                    echo "data: " . json_encode([
+                        'done' => true,
+                        'conversation_id' => $conversation->id,
+                    ]) . "\n\n";
+
+                    if (ob_get_level() > 0) {
+                        ob_flush();
+                    }
+                    flush();
+
+                } catch (\Exception $e) {
+                    \Log::error('Streaming error: ' . $e->getMessage());
+                    echo "data: " . json_encode([
+                        'error' => $e->getMessage(),
+                        'done' => true,
+                    ]) . "\n\n";
+
+                    if (ob_get_level() > 0) {
+                        ob_flush();
+                    }
+                    flush();
+                }
+            }, 200, [
+                'Content-Type' => 'text/event-stream',
+                'Cache-Control' => 'no-cache',
+                'X-Accel-Buffering' => 'no',
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Stream setup error: ' . $e->getMessage());
+
+            return response()->stream(function () use ($e) {
+                echo "data: " . json_encode([
+                    'error' => $e->getMessage(),
+                    'done' => true,
+                ]) . "\n\n";
+                flush();
+            }, 500, [
+                'Content-Type' => 'text/event-stream',
+            ]);
         }
     }
 
@@ -190,13 +403,13 @@ class ChatController extends Controller
     {
         return redirect()->route('chat.index');
     }
+
     /**
      * 会話をエクスポート
      */
     public function export(Conversation $conversation, Request $request)
     {
         $format = $request->query('format', 'markdown');
-
         $conversation->load('messages');
 
         switch ($format) {
