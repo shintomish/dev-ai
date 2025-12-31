@@ -518,12 +518,73 @@
                 font-size: 0.875rem;
             }
         }
+        /* タブボタンのスタイル */
+        .tab-button {
+            color: #6b7280;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            cursor: pointer;
+            background: none;
+            border-top: none;
+            border-left: none;
+            border-right: none;
+        }
+
+        .tab-button.active {
+            color: #3b82f6;
+            border-bottom-color: #3b82f6;
+            font-weight: 600;
+        }
+
+        .tab-button:hover:not(.active) {
+            color: #4b5563;
+            background-color: #f9fafb;
+        }
+
+        /* タブコンテンツ */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
     </style>
 </head>
 <body>
     <div class="flex h-screen">
         <!-- サイドバー -->
-        <aside>
+        <aside class="w-80 bg-white border-r border-gray-200 flex flex-col">
+
+            <!-- 検索ボックス -->
+            <div class="p-4 border-b border-gray-200">
+                <div class="relative">
+                    <input
+                        type="text"
+                        id="searchInput"
+                        placeholder="会話を検索..."
+                        class="w-full px-4 py-2 pl-10 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        autocomplete="off"
+                    >
+                    <svg class="absolute left-3 top-2.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                    <button
+                        id="clearSearch"
+                        class="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 hidden"
+                        title="検索をクリア"
+                    >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div id="searchResults" class="mt-2 text-sm text-gray-500 hidden">
+                    <span id="resultCount">0</span> 件の会話が見つかりました
+                </div>
+            </div>
+
+            <!-- 新しい会話ボタン -->
             <div class="p-4 border-b border-gray-200">
                 <a href="{{ route('chat.new') }}" class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
                     <span>➕</span>
@@ -531,12 +592,60 @@
                 </a>
             </div>
 
-            <div class="flex-1 overflow-y-auto p-4">
-                <!-- お気に入りセクション -->
-                @if($favoriteConversations->isNotEmpty())
-                    <h3 class="text-xs font-semibold text-gray-500 uppercase mb-2">⭐ お気に入り</h3>
-                    <div class="space-y-2 mb-4">
-                        @foreach($favoriteConversations as $conv)
+            <!-- タブボタン -->
+            <div class="flex border-b border-gray-200">
+                <button class="tab-button active flex-1 px-4 py-2 text-sm font-medium" data-tab="recent">
+                    最近
+                </button>
+                <button class="tab-button flex-1 px-4 py-2 text-sm font-medium" data-tab="favorites">
+                    お気に入り
+                </button>
+            </div>
+
+            <!-- タブコンテンツ -->
+            <div class="flex-1 overflow-y-auto">
+                <!-- 最近の会話タブ -->
+                <div id="recent" class="tab-content active p-4">
+                    <div id="conversationList" class="space-y-2">
+                        @forelse($recentConversations as $conv)
+                            <div class="flex items-center gap-2">
+                                <button onclick="toggleFavorite({{ $conv->id }}, event)"
+                                        class="flex-shrink-0 text-xl hover:scale-110 transition-transform"
+                                        title="お気に入りに追加">
+                                    ☆
+                                </button>
+                                <a href="{{ route('chat.index', ['conversation' => $conv->id]) }}"
+                                class="flex-1 block p-3 rounded-lg hover:bg-gray-100 {{ $conversation && $conversation->id === $conv->id ? 'bg-blue-50 border border-blue-200' : 'bg-white border border-gray-200' }}">
+                                    <div class="text-sm font-medium text-gray-900 truncate">
+                                        {{ $conv->title ?? '無題の会話' }}
+                                    </div>
+                                    <div class="text-xs text-gray-500 mt-1">
+                                        {{ $conv->updated_at->diffForHumans() }}
+                                    </div>
+                                    @if($conv->tags->isNotEmpty())
+                                        <div class="flex flex-wrap gap-1 mt-2">
+                                            @foreach($conv->tags as $tag)
+                                                <span class="tag">{{ $tag->name }}</span>
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                </a>
+                                <button onclick="deleteConversation({{ $conv->id }})"
+                                        class="flex-shrink-0 text-red-500 hover:text-red-700 p-1"
+                                        title="削除">
+                                    🗑️
+                                </button>
+                            </div>
+                        @empty
+                            <p class="text-sm text-gray-500 text-center py-4">会話履歴がありません</p>
+                        @endforelse
+                    </div>
+                </div>
+
+                <!-- お気に入りタブ -->
+                <div id="favorites" class="tab-content p-4">
+                    <div id="favoritesList" class="space-y-2">
+                        @forelse($favoriteConversations as $conv)
                             <div class="flex items-center gap-2">
                                 <button onclick="toggleFavorite({{ $conv->id }}, event)"
                                         class="flex-shrink-0 text-xl hover:scale-110 transition-transform"
@@ -565,45 +674,10 @@
                                     🗑️
                                 </button>
                             </div>
-                        @endforeach
+                        @empty
+                            <p class="text-sm text-gray-500 text-center py-4">お気に入りはありません</p>
+                        @endforelse
                     </div>
-                @endif
-
-                <!-- 最近の会話セクション -->
-                <h3 class="text-xs font-semibold text-gray-500 uppercase mb-2">最近の会話</h3>
-                <div class="space-y-2">
-                    @forelse($recentConversations as $conv)
-                        <div class="flex items-center gap-2">
-                            <button onclick="toggleFavorite({{ $conv->id }}, event)"
-                                    class="flex-shrink-0 text-xl hover:scale-110 transition-transform"
-                                    title="お気に入りに追加">
-                                ☆
-                            </button>
-                            <a href="{{ route('chat.index', ['conversation' => $conv->id]) }}"
-                            class="flex-1 block p-3 rounded-lg hover:bg-gray-100 {{ $conversation && $conversation->id === $conv->id ? 'bg-blue-50 border border-blue-200' : 'bg-white border border-gray-200' }}">
-                                <div class="text-sm font-medium text-gray-900 truncate">
-                                    {{ $conv->title ?? '無題の会話' }}
-                                </div>
-                                <div class="text-xs text-gray-500 mt-1">
-                                    {{ $conv->updated_at->diffForHumans() }}
-                                </div>
-                                @if($conv->tags->isNotEmpty())
-                                    <div class="flex flex-wrap gap-1 mt-2">
-                                        @foreach($conv->tags as $tag)
-                                            <span class="tag">{{ $tag->name }}</span>
-                                        @endforeach
-                                    </div>
-                                @endif
-                            </a>
-                            <button onclick="deleteConversation({{ $conv->id }})"
-                                    class="flex-shrink-0 text-red-500 hover:text-red-700 p-1"
-                                    title="削除">
-                                🗑️
-                            </button>
-                        </div>
-                    @empty
-                        <p class="text-sm text-gray-500 text-center py-4">会話履歴がありません</p>
-                    @endforelse
                 </div>
             </div>
         </aside>
@@ -631,7 +705,11 @@
                                     🏷️ タグ
                                 </button>
                                 <div id="tagMenu" class="hidden absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-                                    <div class="p-2 max-h-60 overflow-y-auto">
+                                    <div class="p-3">
+                                        <input type="text" id="newTagInput" placeholder="新しいタグ..." class="w-full px-3 py-1 text-sm border border-gray-300 rounded mb-2">
+                                        <button onclick="addNewTag()" class="w-full px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">追加</button>
+                                    </div>
+                                    <div class="p-2 max-h-60 overflow-y-auto border-t">
                                         @foreach($allTags as $tag)
                                             <label class="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
                                                 <input type="checkbox"
@@ -652,16 +730,16 @@
                                     📥 エクスポート
                                 </button>
                                 <div id="exportMenu" class="hidden absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-                                    <a href="{{ route('chat.export', ['conversation' => $conversation->id, 'format' => 'markdown']) }}"
-                                       class="block px-4 py-2 text-sm hover:bg-gray-50">
+                                    <a href="{{ route('conversations.export', ['conversation' => $conversation->id, 'format' => 'markdown']) }}"
+                                       class="block px-4 py-2 text-sm hover:bg-gray-50 rounded-t-lg">
                                         📝 Markdown
                                     </a>
-                                    <a href="{{ route('chat.export', ['conversation' => $conversation->id, 'format' => 'json']) }}"
+                                    <a href="{{ route('conversations.export', ['conversation' => $conversation->id, 'format' => 'json']) }}"
                                        class="block px-4 py-2 text-sm hover:bg-gray-50">
                                         📊 JSON
                                     </a>
-                                    <a href="{{ route('chat.export', ['conversation' => $conversation->id, 'format' => 'txt']) }}"
-                                       class="block px-4 py-2 text-sm hover:bg-gray-50">
+                                    <a href="{{ route('conversations.export', ['conversation' => $conversation->id, 'format' => 'txt']) }}"
+                                       class="block px-4 py-2 text-sm hover:bg-gray-50 rounded-b-lg">
                                         📄 テキスト
                                     </a>
                                 </div>
@@ -743,6 +821,27 @@
     </div>
 
     <script>
+        // ========== タブ切り替え機能 ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const tabName = button.dataset.tab;
+
+                    // すべてのタブボタンとコンテンツから active を削除
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    tabContents.forEach(content => content.classList.remove('active'));
+
+                    // クリックされたタブを active に
+                    button.classList.add('active');
+                    document.getElementById(tabName).classList.add('active');
+                });
+            });
+        });
+
+        // ========== 定数 ==========
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
         const chatMessages = document.getElementById('chatMessages');
         const chatForm = document.getElementById('chatForm');
@@ -751,6 +850,186 @@
         const conversationIdInput = document.getElementById('conversationId');
         const charCount = document.getElementById('charCount');
         const fileInput = document.getElementById('fileInput');
+
+        // ========== 検索機能 ==========
+        const searchInput = document.getElementById('searchInput');
+        const clearSearch = document.getElementById('clearSearch');
+        const searchResults = document.getElementById('searchResults');
+        const resultCount = document.getElementById('resultCount');
+        let searchTimeout;
+
+        // 検索実行
+        async function performSearch(query) {
+            console.log('検索実行:', query);
+
+            try {
+                const url = `/conversations/search?q=${encodeURIComponent(query)}`;
+                const response = await fetch(url);
+                const data = await response.json();
+
+                console.log('検索結果:', data);
+
+                // 検索結果を表示
+                displaySearchResults(data.conversations, query);
+
+                // 結果数を表示
+                if (query) {
+                    resultCount.textContent = data.conversations.length;
+                    searchResults.classList.remove('hidden');
+                } else {
+                    searchResults.classList.add('hidden');
+                }
+            } catch (error) {
+                console.error('検索エラー:', error);
+            }
+        }
+
+        // 検索結果を表示
+        function displaySearchResults(conversations, query) {
+            const conversationList = document.getElementById('conversationList');
+            const favoritesList = document.getElementById('favoritesList');
+
+            if (!conversationList) {
+                console.error('conversationList が見つかりません');
+                return;
+            }
+
+            // 検索中でない場合は何もしない（ページリロードで元に戻す）
+            if (!query) {
+                location.reload();
+                return;
+            }
+
+            // 検索結果を お気に入り と 最近 に分ける
+            const favoriteResults = conversations.filter(conv => conv.is_favorite);
+            const recentResults = conversations.filter(conv => !conv.is_favorite);
+
+            // 結果が0件の場合
+            if (conversations.length === 0) {
+                conversationList.innerHTML = `
+                    <div class="p-8 text-center text-gray-500">
+                        <svg class="w-16 h-16 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <p class="font-medium">会話が見つかりませんでした</p>
+                        <p class="text-sm mt-1">別のキーワードで検索してみてください</p>
+                    </div>
+                `;
+                if (favoritesList) {
+                    favoritesList.innerHTML = `
+                        <div class="p-4 text-center text-gray-500">
+                            <p class="text-sm">検索結果なし</p>
+                        </div>
+                    `;
+                }
+                return;
+            }
+
+            // 最近の会話リストを更新
+            conversationList.innerHTML = renderConversationItems(recentResults, query);
+
+            // お気に入りリストを更新
+            if (favoritesList) {
+                if (favoriteResults.length > 0) {
+                    favoritesList.innerHTML = renderConversationItems(favoriteResults, query);
+                } else {
+                    favoritesList.innerHTML = `
+                        <div class="p-4 text-center text-gray-500">
+                            <p class="text-sm">検索結果なし</p>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        // 会話アイテムのHTMLを生成
+        function renderConversationItems(conversations, query) {
+            if (conversations.length === 0) {
+                return `
+                    <div class="p-4 text-center text-gray-500">
+                        <p class="text-sm">検索結果なし</p>
+                    </div>
+                `;
+            }
+
+            let html = '';
+            conversations.forEach(conv => {
+                let title = conv.title;
+                if (query && conv.highlight) {
+                    const regex = new RegExp(`(${escapeRegex(query)})`, 'gi');
+                    title = title.replace(regex, '<mark class="bg-yellow-200 px-1 rounded">$1</mark>');
+                }
+
+                const tagsHtml = conv.tags.length > 0
+                    ? `<div class="flex flex-wrap gap-1 mt-2">
+                        ${conv.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                    </div>`
+                    : '';
+
+                html += `
+                    <div class="flex items-center gap-2">
+                        <button onclick="toggleFavorite(${conv.id}, event)"
+                                class="flex-shrink-0 text-xl hover:scale-110 transition-transform"
+                                title="${conv.is_favorite ? 'お気に入り解除' : 'お気に入りに追加'}">
+                            ${conv.is_favorite ? '⭐' : '☆'}
+                        </button>
+                        <a href="/chat?conversation=${conv.id}"
+                        class="flex-1 block p-3 rounded-lg hover:bg-gray-100 bg-white border border-gray-200">
+                            <div class="text-sm font-medium text-gray-900 truncate">${title}</div>
+                            <div class="text-xs text-gray-500 mt-1">${conv.updated_at}</div>
+                            ${tagsHtml}
+                        </a>
+                        <button onclick="deleteConversation(${conv.id})"
+                                class="flex-shrink-0 text-red-500 hover:text-red-700 p-1"
+                                title="削除">
+                            🗑️
+                        </button>
+                    </div>
+                `;
+            });
+
+            return html;
+        }
+
+        // 正規表現のエスケープ
+        function escapeRegex(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        // 入力時の検索
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.trim();
+
+            if (query) {
+                clearSearch.classList.remove('hidden');
+            } else {
+                clearSearch.classList.add('hidden');
+            }
+
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                performSearch(query);
+            }, 300);
+        });
+
+        // Enterキーで検索
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                clearTimeout(searchTimeout);
+                performSearch(e.target.value.trim());
+            }
+        });
+
+        // クリアボタン
+        clearSearch.addEventListener('click', () => {
+            searchInput.value = '';
+            clearSearch.classList.add('hidden');
+            searchResults.classList.add('hidden');
+            performSearch('');
+        });
+
+        // ========== 以下、既存のJavaScript（省略せず全て含める） ==========
 
         // ページ読み込み時の処理
         document.addEventListener('DOMContentLoaded', function() {
@@ -1169,7 +1448,7 @@
             event.stopPropagation();
 
             try {
-                const response = await fetch(`/chat/conversation/${conversationId}/favorite`, {
+                const response = await fetch(`/conversations/${conversationId}/favorite`, {
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': csrfToken,
@@ -1190,7 +1469,7 @@
             if (!confirm('この会話を削除しますか？')) return;
 
             try {
-                const response = await fetch(`/chat/conversation/${conversationId}`, {
+                const response = await fetch(`/conversations/${conversationId}`, {
                     method: 'DELETE',
                     headers: {
                         'X-CSRF-TOKEN': csrfToken,
@@ -1217,35 +1496,91 @@
             document.getElementById('exportMenu').classList.toggle('hidden');
         }
 
-        // タグ変更
-        async function handleTagChange(conversationId, tagId, isChecked) {
-            const url = isChecked
-                ? `/chat/conversation/${conversationId}/tag/attach`
-                : `/chat/conversation/${conversationId}/tag/detach`;
+        // 新しいタグを追加
+        async function addNewTag() {
+            const input = document.getElementById('newTagInput');
+            const tagName = input.value.trim();
 
+            if (!tagName) return;
+
+            @if($conversation)
             try {
-                const response = await fetch(url, {
-                    method: 'POST',
+                const response = await fetch(`/conversations/{{ $conversation->id }}/tags`, {
+                    method: 'PUT',
                     headers: {
                         'X-CSRF-TOKEN': csrfToken,
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ tag_id: tagId }),
+                    body: JSON.stringify({
+                        tags: [...@json($conversation->tags->pluck('name')), tagName]
+                    }),
+                });
+
+                if (response.ok) {
+                    location.reload();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('タグの追加に失敗しました');
+            }
+            @endif
+        }
+
+        // タグ変更（チェックボックスのトグル）
+        async function handleTagChange(conversationId, tagId, isChecked) {
+            console.log('タグ変更:', conversationId, tagId, isChecked);
+
+            try {
+                // 現在の会話のすべてのタグを取得
+                const checkboxes = document.querySelectorAll('#tagMenu input[type="checkbox"]');
+                const selectedTags = [];
+
+                checkboxes.forEach(checkbox => {
+                    if (checkbox.checked) {
+                        // チェックされているタグのIDを取得
+                        const tagId = checkbox.value;
+                        // タグ名を取得（labelのテキスト）
+                        const tagName = checkbox.parentElement.querySelector('span').textContent.trim();
+                        selectedTags.push(tagName);
+                    }
+                });
+
+                console.log('選択されたタグ:', selectedTags);
+
+                // タグを更新
+                const response = await fetch(`/conversations/${conversationId}/tags`, {
+                    method: 'PUT',
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        tags: selectedTags
+                    }),
                 });
 
                 if (!response.ok) {
                     throw new Error('タグの更新に失敗しました');
                 }
+
+                const data = await response.json();
+                console.log('タグ更新成功:', data);
+
+                // 成功したら少し待ってからリロード
+                setTimeout(() => {
+                    location.reload();
+                }, 300);
+
             } catch (error) {
-                console.error('Error:', error);
-                alert('タグの更新に失敗しました');
+                console.error('タグ変更エラー:', error);
+                alert('タグの更新に失敗しました: ' + error.message);
             }
         }
 
         // ヘッダーのお気に入りトグル
         async function toggleFavoriteHeader(conversationId) {
             try {
-                const response = await fetch(`/chat/conversation/${conversationId}/favorite`, {
+                const response = await fetch(`/conversations/${conversationId}/favorite`, {
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': csrfToken,
@@ -1267,7 +1602,7 @@
             if (!confirm('この会話を削除しますか?\n\nこの操作は取り消せません。')) return;
 
             try {
-                const response = await fetch(`/chat/conversation/${conversationId}`, {
+                const response = await fetch(`/conversations/${conversationId}`, {
                     method: 'DELETE',
                     headers: {
                         'X-CSRF-TOKEN': csrfToken,

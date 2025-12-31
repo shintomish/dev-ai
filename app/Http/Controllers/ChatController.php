@@ -532,6 +532,33 @@ class ChatController extends Controller
     }
 
     /**
+     * タグを更新（一括同期）
+     */
+    public function updateTags(Conversation $conversation, Request $request)
+    {
+        $request->validate([
+            'tags' => 'array',
+            'tags.*' => 'string|max:50',
+        ]);
+
+        $tagIds = [];
+        foreach ($request->input('tags', []) as $tagName) {
+            $tagName = trim($tagName);
+            if (!empty($tagName)) {
+                $tag = \App\Models\Tag::firstOrCreate(['name' => $tagName]);
+                $tagIds[] = $tag->id;
+            }
+        }
+
+        $conversation->tags()->sync($tagIds);
+
+        return response()->json([
+            'success' => true,
+            'tags' => $conversation->fresh()->tags,
+        ]);
+    }
+
+    /**
      * タグを追加
      */
     public function attachTag(Conversation $conversation, Request $request)
@@ -560,6 +587,41 @@ class ChatController extends Controller
 
         return response()->json([
             'success' => true,
+        ]);
+    }
+
+    /**
+     * 会話を検索
+     */
+    public function search(Request $request)
+    {
+        $query = $request->input('q', '');
+
+        if (empty($query)) {
+            $conversations = Conversation::latest()->limit(20)->get();
+        } else {
+            $conversations = Conversation::where('title', 'LIKE', "%{$query}%")
+                ->orWhereHas('messages', function($q) use ($query) {
+                    $q->where('content', 'LIKE', "%{$query}%");
+                })
+                ->latest()
+                ->limit(20)
+                ->get();
+        }
+
+        return response()->json([
+            'conversations' => $conversations->map(function($conv) use ($query) {
+                return [
+                    'id' => $conv->id,
+                    'title' => $conv->title,
+                    'mode' => $conv->mode,
+                    'is_favorite' => $conv->is_favorite,
+                    'updated_at' => $conv->updated_at->format('Y-m-d H:i'),
+                    'message_count' => $conv->messages()->count(),
+                    'tags' => $conv->tags->pluck('name'),
+                    'highlight' => !empty($query),
+                ];
+            })
         ]);
     }
 
