@@ -21,6 +21,15 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/sql.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
 
+    <!-- Marked.js for Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
+
+    <!-- DOMPurify for XSS protection -->
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+
+    <!-- Mermaid for diagrams (optional) -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+
     <style>
         /* ===== ダークモード用CSS変数 ===== */
         :root {
@@ -81,6 +90,210 @@
             --scrollbar-track: #111827;
             --scrollbar-thumb: #4b5563;
             --scrollbar-thumb-hover: #6b7280;
+        }
+
+        /* ===== マークダウンスタイル ===== */
+        .markdown-content {
+            line-height: 1.6;
+        }
+
+        .markdown-content h1,
+        .markdown-content h2,
+        .markdown-content h3,
+        .markdown-content h4,
+        .markdown-content h5,
+        .markdown-content h6 {
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .markdown-content h1 {
+            font-size: 1.875rem;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+
+        .markdown-content h2 {
+            font-size: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+
+        .markdown-content h3 {
+            font-size: 1.25rem;
+        }
+
+        .markdown-content h4 {
+            font-size: 1.125rem;
+        }
+
+        .markdown-content p {
+            margin: 0.75rem 0;
+        }
+
+        .markdown-content a {
+            color: #3b82f6;
+            text-decoration: underline;
+            word-break: break-all;
+        }
+
+        [data-theme="dark"] .markdown-content a {
+            color: #60a5fa;
+        }
+
+        .markdown-content a:hover {
+            color: #2563eb;
+        }
+
+        .markdown-content ul,
+        .markdown-content ol {
+            margin: 0.75rem 0;
+            padding-left: 2rem;
+        }
+
+        .markdown-content li {
+            margin: 0.25rem 0;
+        }
+
+        .markdown-content ul ul,
+        .markdown-content ol ul,
+        .markdown-content ul ol,
+        .markdown-content ol ol {
+            margin: 0.25rem 0;
+        }
+
+        /* テーブル */
+        .markdown-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            overflow-x: auto;
+            display: block;
+        }
+
+        .markdown-content table thead {
+            background: var(--bg-tertiary);
+        }
+
+        .markdown-content table th,
+        .markdown-content table td {
+            border: 1px solid var(--border-color);
+            padding: 0.5rem 0.75rem;
+            text-align: left;
+        }
+
+        .markdown-content table th {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .markdown-content table tbody tr:hover {
+            background: var(--hover-bg);
+        }
+
+        /* 引用 */
+        .markdown-content blockquote {
+            border-left: 4px solid #3b82f6;
+            padding-left: 1rem;
+            margin: 1rem 0;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        [data-theme="dark"] .markdown-content blockquote {
+            border-left-color: #60a5fa;
+        }
+
+        /* 水平線 */
+        .markdown-content hr {
+            border: none;
+            border-top: 2px solid var(--border-color);
+            margin: 1.5rem 0;
+        }
+
+        /* コードブロック（Markedで処理） */
+        .markdown-content pre {
+            background: var(--code-bg);
+            color: var(--code-text);
+            padding: 1rem;
+            padding-top: 2.5rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            margin: 1rem 0;
+            position: relative;
+        }
+
+        .markdown-content pre code {
+            background: transparent;
+            color: inherit;
+            padding: 0;
+        }
+
+        /* インラインコード */
+        .markdown-content code {
+            background: var(--inline-code-bg);
+            color: var(--inline-code-text);
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.25rem;
+            font-family: 'Courier New', Consolas, Monaco, monospace;
+            font-size: 0.9em;
+        }
+
+        .markdown-content pre code {
+            background: transparent;
+            padding: 0;
+        }
+
+        /* タスクリスト */
+        .markdown-content input[type="checkbox"] {
+            margin-right: 0.5rem;
+        }
+
+        .markdown-content .task-list-item {
+            list-style: none;
+        }
+
+        .markdown-content .task-list-item input[type="checkbox"] {
+            margin-left: -1.5rem;
+        }
+
+        /* Mermaid図表 */
+        .mermaid {
+            background: var(--bg-primary);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+        }
+
+        /* コピーボタン（既存） */
+        .markdown-content .copy-button {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            font-size: 0.75rem;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 10;
+        }
+
+        .markdown-content pre:hover .copy-button {
+            opacity: 1;
+        }
+
+        .markdown-content .copy-button:hover {
+            background: #2563eb;
+        }
+
+        .markdown-content .copy-button.copied {
+            background: #10b981;
         }
 
         /* ===== 全体レイアウト ===== */
@@ -875,6 +1088,37 @@ aside {
                     <div class="message {{ $message->role }}">
                         <div class="message-content">
                             {!! nl2br(e($message->content)) !!}
+
+                            @if($message->attachments->count() > 0)
+                                <div class="mt-3 pt-3 border-t" style="border-color: var(--border-color);">
+                                    <div class="text-sm font-semibold mb-2" style="color: var(--text-secondary);">📎 添付ファイル</div>
+                                    <div class="space-y-2">
+                                        @foreach($message->attachments as $attachment)
+                                            @if($attachment->isImage())
+                                                <!-- 画像サムネイル -->
+                                                <div class="flex items-start gap-2 p-2 rounded" style="background: var(--bg-tertiary);">
+                                                    <img src="{{ $attachment->public_url }}"
+                                                        alt="{{ $attachment->original_filename }}"
+                                                        class="w-32 h-32 object-cover rounded cursor-pointer hover:opacity-80 transition"
+                                                        style="border: 1px solid var(--border-color);"
+                                                        onclick="window.open('{{ $attachment->public_url }}', '_blank')">
+                                                    <div class="flex-1 min-w-0">
+                                                        <div class="text-sm font-medium" style="color: var(--text-primary);">{{ $attachment->original_filename }}</div>
+                                                        <div class="text-xs" style="color: var(--text-secondary);">{{ $attachment->human_readable_size }}</div>
+                                                    </div>
+                                                </div>
+                                            @else
+                                                <!-- テキストファイル -->
+                                                <div class="flex items-center gap-2 p-2 rounded" style="background: var(--bg-tertiary);">
+                                                    <span>📄</span>
+                                                    <span class="text-sm truncate flex-1" style="color: var(--text-primary);">{{ $attachment->original_filename }}</span>
+                                                    <span class="text-xs" style="color: var(--text-secondary);">({{ $attachment->human_readable_size }})</span>
+                                                </div>
+                                            @endif
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
                         </div>
                     </div>
                 @endforeach
@@ -904,13 +1148,14 @@ aside {
 
                 <!-- ファイルアップロード -->
                 <div class="mb-3">
-                    <input type="file" id="fileInput" name="files[]" multiple class="hidden" accept=".txt,.log,.php,.js,.py,.java,.cpp,.h,.md,.json,.xml,.yaml,.yml,.png,.jpg,.jpeg,.gif,.webp">
+                    <input type="file" id="fileInput" name="files[]" multiple class="hidden"
+                        accept=".txt,.log,.php,.js,.py,.java,.cpp,.h,.md,.json,.xml,.yaml,.yml,.png,.jpg,.jpeg,.gif,.webp">
                     <button type="button" onclick="document.getElementById('fileInput').click()"
                             class="px-3 py-1 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
                             style="background: var(--bg-primary); color: var(--text-primary); border-color: var(--border-color);">
-                        📎 ファイルを添付
+                        📎 ファイルを添付（テキスト・画像）
                     </button>
-                    <!-- ファイルリスト表示エリア（ダークモード対応） -->
+                    <!-- ファイルリスト表示エリア -->
                     <div id="fileList" style="background: var(--bg-tertiary); color: var(--text-primary);"></div>
                 </div>
 
@@ -999,6 +1244,7 @@ aside {
             localStorage.setItem('theme', newTheme);
         }
 
+        // ダークモード切り替え時のMermaidテーマ変更
         function applyTheme(theme) {
             document.documentElement.setAttribute('data-theme', theme);
 
@@ -1008,6 +1254,22 @@ aside {
                 toggleButton.textContent = theme === 'dark' ? '☀️' : '🌙';
                 toggleButton.title = theme === 'dark' ? 'ライトモード' : 'ダークモード';
             }
+
+            // Mermaidのテーマを変更
+            mermaid.initialize({
+                startOnLoad: false,
+                theme: theme === 'dark' ? 'dark' : 'default'
+            });
+
+            // 既存のMermaid図表を再レンダリング
+            document.querySelectorAll('.mermaid').forEach((element) => {
+                const originalContent = element.textContent;
+                element.removeAttribute('data-processed');
+                element.innerHTML = originalContent;
+                mermaid.init(undefined, element);
+            });
+
+            console.log('テーマ変更:', theme);
         }
 
         // ========== 定数 ==========
@@ -1202,15 +1464,30 @@ aside {
 
         // ページ読み込み時の処理
         document.addEventListener('DOMContentLoaded', function() {
+            // Mermaidの初期化
+            mermaid.initialize({
+                startOnLoad: false,
+                theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
+            });
+
             // 既存メッセージのフォーマット
             document.querySelectorAll('.message-content').forEach(element => {
                 if (!element.classList.contains('formatted')) {
+                    element.classList.add('markdown-content');  // マークダウンクラス追加
                     const formattedContent = formatResponse(element.textContent);
                     element.innerHTML = formattedContent;
                     element.classList.add('formatted');
 
+                    // コードブロックのハイライト
                     element.querySelectorAll('pre code').forEach((block) => {
-                        hljs.highlightBlock(block);
+                        if (!block.classList.contains('hljs')) {
+                            hljs.highlightBlock(block);
+                        }
+                    });
+
+                    // Mermaid図表のレンダリング
+                    element.querySelectorAll('.mermaid').forEach((mermaidElement) => {
+                        mermaid.init(undefined, mermaidElement);
                     });
                 }
             });
@@ -1235,7 +1512,7 @@ aside {
             sendButton.disabled = this.value.trim().length === 0;
         });
 
-        // ファイル選択
+        // ファイル選択（画像プレビュー対応）
         fileInput.addEventListener('change', function() {
             const fileList = document.getElementById('fileList');
             fileList.innerHTML = '';
@@ -1244,10 +1521,35 @@ aside {
                 Array.from(this.files).forEach(file => {
                     const fileItem = document.createElement('div');
                     fileItem.className = 'file-item';
-                    fileItem.innerHTML = `
-                        <span style="color: var(--text-primary);">📄 ${file.name} (${formatFileSize(file.size)})</span>
-                        <button type="button" onclick="removeFile('${file.name}')" class="text-red-500 hover:text-red-700">✕</button>
-                    `;
+
+                    const isImage = file.type.startsWith('image/');
+
+                    if (isImage) {
+                        // 画像の場合はプレビューを表示
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            fileItem.innerHTML = `
+                                <div class="flex items-start gap-2 w-full p-2 rounded" style="background: var(--bg-primary); border: 1px solid var(--border-color);">
+                                    <img src="${e.target.result}" alt="${file.name}" class="w-20 h-20 object-cover rounded" style="border: 1px solid var(--border-color);">
+                                    <div class="flex-1 min-w-0">
+                                        <div style="color: var(--text-primary);" class="text-sm font-medium">🖼️ ${file.name}</div>
+                                        <div style="color: var(--text-secondary);" class="text-xs">${formatFileSize(file.size)}</div>
+                                    </div>
+                                    <button type="button" onclick="removeFile('${file.name}')" class="text-red-500 hover:text-red-700 flex-shrink-0">✕</button>
+                                </div>
+                            `;
+                        };
+                        reader.readAsDataURL(file);
+                    } else {
+                        // テキストファイルの場合
+                        fileItem.innerHTML = `
+                            <div class="flex items-center justify-between w-full p-2 rounded" style="background: var(--bg-primary); border: 1px solid var(--border-color);">
+                                <span style="color: var(--text-primary);">📄 ${file.name} (${formatFileSize(file.size)})</span>
+                                <button type="button" onclick="removeFile('${file.name}')" class="text-red-500 hover:text-red-700">✕</button>
+                            </div>
+                        `;
+                    }
+
                     fileList.appendChild(fileItem);
                 });
             }
@@ -1282,15 +1584,23 @@ aside {
             messageDiv.className = `message ${role} ${isLoading ? 'loading' : ''}`;
 
             const contentDiv = document.createElement('div');
-            contentDiv.className = 'message-content';
+            contentDiv.className = 'message-content markdown-content';  // markdown-content クラスを追加
 
             if (role === 'assistant' && !isLoading) {
                 contentDiv.innerHTML = formatResponse(content);
                 messageDiv.appendChild(contentDiv);
                 chatMessages.appendChild(messageDiv);
 
+                // コードブロックのハイライト
                 contentDiv.querySelectorAll('pre code').forEach((block) => {
-                    hljs.highlightBlock(block);
+                    if (!block.classList.contains('hljs')) {
+                        hljs.highlightBlock(block);
+                    }
+                });
+
+                // Mermaid図表のレンダリング
+                contentDiv.querySelectorAll('.mermaid').forEach((element) => {
+                    mermaid.init(undefined, element);
                 });
             } else {
                 contentDiv.textContent = content;
@@ -1302,20 +1612,88 @@ aside {
             return messageId;
         }
 
-        // レスポンスフォーマット
+        // レスポンスフォーマット（Marked.js使用）
         function formatResponse(text) {
-            let formatted = text
-                .replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
-                    const language = lang || 'plaintext';
-                    const codeId = 'code-' + Math.random().toString(36).substr(2, 9);
-                    return `<pre><button class="copy-button" onclick="copyCode('${codeId}')">📋 コピー</button><code id="${codeId}" class="language-${language}">${escapeHtml(code.trim())}</code></pre>`;
-                })
-                .replace(/`([^`]+)`/g, '<code>$1</code>')
-                .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-                .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-                .replace(/\n/g, '<br>');
+            // Marked.js の設定
+            marked.setOptions({
+                breaks: true,
+                gfm: true,
+                headerIds: false,
+                mangle: false,
+                sanitize: false,
+            });
 
-            return formatted;
+            // カスタムレンダラー
+            const renderer = new marked.Renderer();
+
+            // コードブロックのレンダリング
+            renderer.code = function(code, language) {
+                const validLanguage = language && hljs.getLanguage(language) ? language : 'plaintext';
+                const highlighted = hljs.highlight(code, { language: validLanguage }).value;
+                const codeId = 'code-' + Math.random().toString(36).substr(2, 9);
+
+                return `<pre><button class="copy-button" onclick="copyCode('${codeId}')">📋 コピー</button><code id="${codeId}" class="hljs language-${validLanguage}">${highlighted}</code></pre>`;
+            };
+
+            // インラインコード
+            renderer.codespan = function(code) {
+                return `<code>${escapeHtml(code)}</code>`;
+            };
+
+            // リンク
+            renderer.link = function(href, title, text) {
+                const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
+                return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer"${titleAttr}>${text}</a>`;
+            };
+
+            // テーブル
+            renderer.table = function(header, body) {
+                return `<table class="w-full"><thead>${header}</thead><tbody>${body}</tbody></table>`;
+            };
+
+            // 画像
+            renderer.image = function(href, title, text) {
+                const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
+                const altAttr = text ? ` alt="${escapeHtml(text)}"` : '';
+                return `<img src="${escapeHtml(href)}"${altAttr}${titleAttr} style="max-width: 100%; height: auto; border-radius: 0.5rem; margin: 1rem 0;">`;
+            };
+
+            // タスクリスト
+            renderer.listitem = function(text, task, checked) {
+                if (task) {
+                    const checkbox = checked ? '<input type="checkbox" checked disabled>' : '<input type="checkbox" disabled>';
+                    return `<li class="task-list-item">${checkbox} ${text}</li>`;
+                }
+                return `<li>${text}</li>`;
+            };
+
+            marked.use({ renderer });
+
+            // Mermaid記法の検出と処理
+            let html = text;
+            const mermaidRegex = /```mermaid\n([\s\S]*?)```/g;
+            let mermaidCounter = 0;
+
+            html = html.replace(mermaidRegex, (match, code) => {
+                mermaidCounter++;
+                const id = `mermaid-${Date.now()}-${mermaidCounter}`;
+                // Mermaidは後でレンダリング
+                return `<div class="mermaid" id="${id}">${escapeHtml(code.trim())}</div>`;
+            });
+
+            // Markedでパース
+            html = marked.parse(html);
+
+            // DOMPurifyでサニタイズ（XSS対策）
+            html = DOMPurify.sanitize(html, {
+                ALLOWED_TAGS: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'br', 'strong', 'em', 'u', 's',
+                            'a', 'ul', 'ol', 'li', 'blockquote', 'code', 'pre', 'table', 'thead',
+                            'tbody', 'tr', 'th', 'td', 'hr', 'img', 'div', 'span', 'input', 'button'],
+                ALLOWED_ATTR: ['href', 'title', 'target', 'rel', 'src', 'alt', 'class', 'id', 'type',
+                            'checked', 'disabled', 'onclick', 'style'],
+            });
+
+            return html;
         }
 
         function escapeHtml(text) {

@@ -84,17 +84,22 @@ class ChatController extends Controller
 
         // 5. ファイルアップロード処理
         $uploadedFiles = [];
+        $imageContents = [];
+
         if ($request->hasFile('files')) {
             foreach ($request->file('files') as $file) {
                 $originalName = $file->getClientOriginalName();
-                $filename = time() . '_' . $originalName;
+                $filename = time() . '_' . uniqid() . '_' . $originalName;
                 $path = $file->storeAs('attachments', $filename, 'public');
+                $mimeType = $file->getMimeType();
+                $isImage = str_starts_with($mimeType, 'image/');
 
                 // テキストファイルの場合は内容を読み込む
                 $content = null;
-                $mimeType = $file->getMimeType();
-                if (str_starts_with($mimeType, 'text/') ||
-                    in_array($file->getClientOriginalExtension(), ['log', 'txt', 'php', 'js', 'py', 'java', 'cpp', 'h', 'md', 'json', 'xml', 'yaml', 'yml'])) {
+                if (!$isImage && (
+                    str_starts_with($mimeType, 'text/') ||
+                    in_array($file->getClientOriginalExtension(), ['log', 'txt', 'php', 'js', 'py', 'java', 'cpp', 'h', 'md', 'json', 'xml', 'yaml', 'yml'])
+                )) {
                     $content = file_get_contents($file->getRealPath());
                 }
 
@@ -106,12 +111,27 @@ class ChatController extends Controller
                     'mime_type' => $mimeType,
                     'size' => $file->getSize(),
                     'content' => $content,
+                    'is_image' => $isImage,
                 ]);
+
+                // 画像の場合はBase64エンコード
+                if ($isImage) {
+                    $imageData = base64_encode(file_get_contents($file->getRealPath()));
+                    $imageContents[] = [
+                        'type' => 'image',
+                        'source' => [
+                            'type' => 'base64',
+                            'media_type' => $mimeType,
+                            'data' => $imageData,
+                        ],
+                    ];
+                }
 
                 $uploadedFiles[] = [
                     'name' => $originalName,
                     'size' => $attachment->human_readable_size,
                     'content' => $content,
+                    'is_image' => $isImage,
                 ];
             }
         }
@@ -121,9 +141,13 @@ class ChatController extends Controller
         if (!empty($uploadedFiles)) {
             $fullMessage .= "\n\n【添付ファイル】\n";
             foreach ($uploadedFiles as $file) {
-                $fullMessage .= "\nファイル名: {$file['name']} (サイズ: {$file['size']})\n";
-                if ($file['content']) {
-                    $fullMessage .= "内容:\n```\n" . substr($file['content'], 0, 10000) . "\n```\n";
+                if (!$file['is_image']) {
+                    $fullMessage .= "\nファイル名: {$file['name']} (サイズ: {$file['size']})\n";
+                    if ($file['content']) {
+                        $fullMessage .= "内容:\n```\n" . substr($file['content'], 0, 10000) . "\n```\n";
+                    }
+                } else {
+                    $fullMessage .= "\n画像: {$file['name']} (サイズ: {$file['size']})\n";
                 }
             }
         }
@@ -136,6 +160,20 @@ class ChatController extends Controller
 
         // 9. Claude API呼び出し
         try {
+            // メッセージコンテンツを構築
+            $messageContent = [];
+
+            // 画像がある場合は先に追加
+            if (!empty($imageContents)) {
+                $messageContent = array_merge($messageContent, $imageContents);
+            }
+
+            // テキストメッセージを追加
+            $messageContent[] = [
+                'type' => 'text',
+                'text' => $fullMessage,
+            ];
+
             $response = Http::withHeaders([
                 'x-api-key' => config('services.anthropic.api_key'),
                 'anthropic-version' => '2023-06-01',
@@ -147,7 +185,7 @@ class ChatController extends Controller
                 'messages' => [
                     [
                         'role' => 'user',
-                        'content' => $fullMessage,
+                        'content' => $messageContent,
                     ],
                 ],
             ]);
