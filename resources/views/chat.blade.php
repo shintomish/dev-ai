@@ -901,6 +901,35 @@ aside {
                 </div>
             </div>
 
+            <!-- トークン使用統計（追加） -->
+            <div class="p-4 border-b border-gray-200" style="border-color: var(--border-color); background: var(--bg-tertiary);">
+                <div class="text-xs font-semibold uppercase mb-2" style="color: var(--text-secondary);">
+                    📊 今月の使用量
+                </div>
+                <div class="space-y-1 text-sm" style="color: var(--text-primary);">
+                    <div class="flex justify-between">
+                        <span>トークン:</span>
+                        <span class="font-mono">{{ number_format($monthlyStats['total_tokens']) }}</span>
+                    </div>
+                    <div class="flex justify-between text-xs" style="color: var(--text-secondary);">
+                        <span>入力:</span>
+                        <span class="font-mono">{{ number_format($monthlyStats['input_tokens']) }}</span>
+                    </div>
+                    <div class="flex justify-between text-xs" style="color: var(--text-secondary);">
+                        <span>出力:</span>
+                        <span class="font-mono">{{ number_format($monthlyStats['output_tokens']) }}</span>
+                    </div>
+                    <div class="flex justify-between pt-1 border-t" style="border-color: var(--border-color);">
+                        <span>コスト:</span>
+                        <span class="font-mono font-semibold">¥{{ number_format($monthlyStats['cost_jpy'], 2) }}</span>
+                    </div>
+                    <div class="flex justify-between text-xs" style="color: var(--text-secondary);">
+                        <span>メッセージ数:</span>
+                        <span class="font-mono">{{ $monthlyStats['message_count'] }}</span>
+                    </div>
+                </div>
+            </div>
+
             <!-- 新しい会話ボタン -->
                 <div class="p-4 border-b border-gray-200" style="border-color: var(--border-color);">
                     <a href="{{ route('chat.new') }}" class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
@@ -1006,9 +1035,18 @@ aside {
             <!-- ヘッダー -->
             <div class="border-b border-gray-200 bg-white p-4" style="background: var(--bg-primary); border-color: var(--border-color);">
                 <div class="flex items-center justify-between">
-                    <h1 class="text-xl font-bold text-gray-900" style="color: var(--text-primary);">
-                        {{ $conversation ? $conversation->title : '新しい会話' }}
-                    </h1>
+                    <div class="flex-1">
+                        <h1 class="text-xl font-bold text-gray-900" style="color: var(--text-primary);">
+                            {{ $conversation ? $conversation->title : '新しい会話' }}
+                        </h1>
+                        @if($conversation && $conversation->total_tokens > 0)
+                            <div class="text-xs mt-1" style="color: var(--text-secondary);">
+                                📊 {{ number_format($conversation->total_tokens) }} tokens
+                                (入力: {{ number_format($conversation->input_tokens) }} / 出力: {{ number_format($conversation->output_tokens) }})
+                                · ¥{{ number_format($conversation->cost_jpy, 2) }}
+                            </div>
+                        @endif
+                    </div>
                     <div class="flex items-center gap-2">
                         <!-- ダークモード切り替えボタン -->
                         <button onclick="toggleDarkMode()"

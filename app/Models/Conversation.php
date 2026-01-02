@@ -39,4 +39,48 @@ class Conversation extends Model
             $this->update(['title' => $title]);
         }
     }
+
+    /**
+     * 会話の合計トークン数
+     */
+    public function getTotalTokensAttribute()
+    {
+        return $this->messages()->sum('total_tokens') ?? 0;
+    }
+
+    /**
+     * 会話の合計入力トークン数
+     */
+    public function getInputTokensAttribute()
+    {
+        return $this->messages()->sum('input_tokens') ?? 0;
+    }
+
+    /**
+     * 会話の合計出力トークン数
+     */
+    public function getOutputTokensAttribute()
+    {
+        return $this->messages()->sum('output_tokens') ?? 0;
+    }
+
+    /**
+     * 会話の合計コスト（USD）
+     */
+    public function getCostAttribute()
+    {
+        $inputCost = $this->input_tokens / 1_000_000 * 3;
+        $outputCost = $this->output_tokens / 1_000_000 * 15;
+
+        return $inputCost + $outputCost;
+    }
+
+    /**
+     * 会話の合計コスト（JPY）
+     */
+    public function getCostJpyAttribute()
+    {
+        return $this->cost * 155;
+    }
+
 }

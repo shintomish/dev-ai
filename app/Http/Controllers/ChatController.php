@@ -41,12 +41,16 @@ class ChatController extends Controller
 
         $allTags = Tag::all();
 
+        // 今月の統計を取得
+        $monthlyStats = $this->getMonthlyStats();
+
         return view('chat', compact(
             'conversation',
             'messages',
             'recentConversations',
             'favoriteConversations',
-            'allTags'
+            'allTags',
+            'monthlyStats'  // 追加
         ));
     }
 
@@ -190,19 +194,29 @@ class ChatController extends Controller
                 ],
             ]);
 
+            // レスポンス処理
             if ($response->successful()) {
                 $data = $response->json();
                 $content = $data['content'][0]['text'] ?? 'レスポンスが空です';
 
-                // アシスタントメッセージを保存
+                // 使用トークン情報を取得
+                $usage = $data['usage'] ?? null;
+                $inputTokens = $usage['input_tokens'] ?? null;
+                $outputTokens = $usage['output_tokens'] ?? null;
+                $totalTokens = $inputTokens && $outputTokens ? $inputTokens + $outputTokens : null;
+
+                // アシスタントメッセージを保存（トークン情報を含む）
                 $assistantMessage = Message::create([
                     'conversation_id' => $conversation->id,
                     'role' => 'assistant',
                     'content' => $content,
                     'metadata' => [
-                        'usage' => $data['usage'] ?? null,
+                        'usage' => $usage,
                         'model' => $data['model'] ?? null,
                     ],
+                    'input_tokens' => $inputTokens,
+                    'output_tokens' => $outputTokens,
+                    'total_tokens' => $totalTokens,
                 ]);
 
                 $conversation->touch();
@@ -212,7 +226,12 @@ class ChatController extends Controller
                     'response' => $content,
                     'conversation_id' => $conversation->id,
                     'message_id' => $assistantMessage->id,
-                    'usage' => $data['usage'] ?? null,
+                    'usage' => $usage,
+                    'tokens' => [
+                        'input' => $inputTokens,
+                        'output' => $outputTokens,
+                        'total' => $totalTokens,
+                    ],
                 ]);
             }
 
@@ -448,12 +467,16 @@ class ChatController extends Controller
 
         $allTags = Tag::all();
 
+        // 今月の統計を取得
+        $monthlyStats = $this->getMonthlyStats();
+
         return view('chat', [
             'conversation' => null,
             'messages' => collect(),
             'recentConversations' => $recentConversations,
             'favoriteConversations' => $favoriteConversations,
             'allTags' => $allTags,
+            'monthlyStats' => $monthlyStats,  // 追加
         ]);
     }
 
@@ -484,6 +507,9 @@ class ChatController extends Controller
         }
     }
 
+    /**
+     * エクスポート・マークダウン
+     */
     private function exportMarkdown(Conversation $conversation): \Symfony\Component\HttpFoundation\StreamedResponse
     {
         $filename = sprintf(
@@ -512,6 +538,9 @@ class ChatController extends Controller
         ]);
     }
 
+    /**
+     * エクスポート・JSON
+     */
     private function exportJson(Conversation $conversation): \Symfony\Component\HttpFoundation\StreamedResponse
     {
         $filename = sprintf(
@@ -540,6 +569,9 @@ class ChatController extends Controller
         ]);
     }
 
+    /**
+     * エクスポート・テキスト
+     */
     private function exportText(Conversation $conversation): \Symfony\Component\HttpFoundation\StreamedResponse
     {
         $filename = sprintf(
@@ -662,7 +694,36 @@ class ChatController extends Controller
             })
         ]);
     }
+    /**
+     * 今月のトークン使用統計
+     */
+    public function getMonthlyStats()
+    {
+        $startOfMonth = now()->startOfMonth();
 
+        $stats = Message::where('created_at', '>=', $startOfMonth)
+            ->whereNotNull('total_tokens')
+            ->selectRaw('
+                SUM(input_tokens) as total_input,
+                SUM(output_tokens) as total_output,
+                SUM(total_tokens) as total_tokens,
+                COUNT(*) as message_count
+            ')
+            ->first();
+
+        $inputCost = ($stats->total_input ?? 0) / 1_000_000 * 3;
+        $outputCost = ($stats->total_output ?? 0) / 1_000_000 * 15;
+        $totalCost = $inputCost + $outputCost;
+
+        return [
+            'input_tokens' => $stats->total_input ?? 0,
+            'output_tokens' => $stats->total_output ?? 0,
+            'total_tokens' => $stats->total_tokens ?? 0,
+            'message_count' => $stats->message_count ?? 0,
+            'cost_usd' => $totalCost,
+            'cost_jpy' => $totalCost * 150,
+        ];
+    }
     /**
      * モード別のシステムプロンプトを返す
      */

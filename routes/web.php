@@ -1,20 +1,33 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ChatController;
 
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+*/
+
+// トップページ → チャットにリダイレクト
 Route::get('/', function () {
-    return view('welcome');
+    return redirect()->route('chat.index');
 });
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+// ========== 会話検索 ==========
+Route::get('/conversations/search', [ChatController::class, 'search'])->name('conversations.search');
 
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-});
+// ========== 会話管理 ==========
+Route::post('/conversations/{conversation}/favorite', [ChatController::class, 'toggleFavorite'])->name('conversations.favorite');
+Route::delete('/conversations/{conversation}', [ChatController::class, 'destroy'])->name('conversations.destroy');
+Route::put('/conversations/{conversation}/tags', [ChatController::class, 'updateTags'])->name('conversations.tags');
+Route::get('/conversations/{conversation}/export', [ChatController::class, 'export'])->name('conversations.export');
 
-require __DIR__.'/auth.php';
+// ========== チャット画面 ==========
+Route::get('/chat', [ChatController::class, 'index'])->name('chat.index');
+Route::get('/chat/new', [ChatController::class, 'new'])->name('chat.new');
+
+// ========== メッセージ送信 ==========
+Route::post('/chat/send', [ChatController::class, 'send'])->name('chat.send');
+Route::post('/chat/send-stream', [ChatController::class, 'sendStream'])->name('chat.send.stream');
+
