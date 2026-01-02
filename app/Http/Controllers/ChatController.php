@@ -724,6 +724,86 @@ class ChatController extends Controller
             'cost_jpy' => $totalCost * 150,
         ];
     }
+/**
+     * 詳細なトークン使用統計（日別、会話別）
+     */
+    public function getDetailedStats()
+    {
+        $startOfMonth = now()->startOfMonth();
+
+        // 日別の統計
+        $dailyStats = Message::where('created_at', '>=', $startOfMonth)
+            ->whereNotNull('total_tokens')
+            ->selectRaw('
+                DATE(created_at) as date,
+                SUM(input_tokens) as input_tokens,
+                SUM(output_tokens) as output_tokens,
+                SUM(total_tokens) as total_tokens,
+                COUNT(*) as message_count
+            ')
+            ->groupBy('date')
+            ->orderBy('date', 'asc')
+            ->get()
+            ->map(function($stat) {
+                $inputCost = ($stat->input_tokens ?? 0) / 1_000_000 * 3;
+                $outputCost = ($stat->output_tokens ?? 0) / 1_000_000 * 15;
+                return [
+                    'date' => $stat->date,
+                    'input_tokens' => $stat->input_tokens,
+                    'output_tokens' => $stat->output_tokens,
+                    'total_tokens' => $stat->total_tokens,
+                    'message_count' => $stat->message_count,
+                    'cost_usd' => $inputCost + $outputCost,
+                    'cost_jpy' => ($inputCost + $outputCost) * 150,
+                ];
+            });
+
+        // 会話別の統計（トップ10）
+        $conversationStats = Conversation::whereHas('messages', function($query) use ($startOfMonth) {
+                $query->where('created_at', '>=', $startOfMonth)
+                      ->whereNotNull('total_tokens');
+            })
+            ->withCount(['messages' => function($query) use ($startOfMonth) {
+                $query->where('created_at', '>=', $startOfMonth);
+            }])
+            ->get()
+            ->map(function($conv) use ($startOfMonth) {
+                $tokens = $conv->messages()
+                    ->where('created_at', '>=', $startOfMonth)
+                    ->selectRaw('
+                        SUM(input_tokens) as input_tokens,
+                        SUM(output_tokens) as output_tokens,
+                        SUM(total_tokens) as total_tokens
+                    ')
+                    ->first();
+
+                $inputCost = ($tokens->input_tokens ?? 0) / 1_000_000 * 3;
+                $outputCost = ($tokens->output_tokens ?? 0) / 1_000_000 * 15;
+
+                return [
+                    'id' => $conv->id,
+                    'title' => $conv->title,
+                    'input_tokens' => $tokens->input_tokens ?? 0,
+                    'output_tokens' => $tokens->output_tokens ?? 0,
+                    'total_tokens' => $tokens->total_tokens ?? 0,
+                    'message_count' => $conv->messages_count ?? 0,
+                    'cost_usd' => $inputCost + $outputCost,
+                    'cost_jpy' => ($inputCost + $outputCost) * 150,
+                ];
+            })
+            ->sortByDesc('total_tokens')
+            ->take(10)
+            ->values();
+
+        // 月別の統計
+        $monthlyStats = $this->getMonthlyStats();
+
+        return response()->json([
+            'monthly' => $monthlyStats,
+            'daily' => $dailyStats,
+            'conversations' => $conversationStats,
+        ]);
+    }
     /**
      * モード別のシステムプロンプトを返す
      */

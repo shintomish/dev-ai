@@ -30,6 +30,12 @@
     <!-- Mermaid for diagrams (optional) -->
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
 
+    <!-- Mermaid for diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+
+    <!-- Chart.js for graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
     <style>
         /* ===== ダークモード用CSS変数 ===== */
         :root {
@@ -901,10 +907,18 @@ aside {
                 </div>
             </div>
 
-            <!-- トークン使用統計（追加） -->
-            <div class="p-4 border-b border-gray-200" style="border-color: var(--border-color); background: var(--bg-tertiary);">
-                <div class="text-xs font-semibold uppercase mb-2" style="color: var(--text-secondary);">
-                    📊 今月の使用量
+        <!-- トークン使用統計 -->
+            @if(isset($monthlyStats))
+            <div class="p-4 border-b border-gray-200 cursor-pointer hover:bg-opacity-80 transition"
+                style="border-color: var(--border-color); background: var(--bg-tertiary);"
+                onclick="openStatsModal()">
+                <div class="flex items-center justify-between mb-2">
+                    <div class="text-xs font-semibold uppercase" style="color: var(--text-secondary);">
+                        📊 今月の使用量
+                    </div>
+                    <svg class="w-4 h-4" style="color: var(--text-secondary);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
                 </div>
                 <div class="space-y-1 text-sm" style="color: var(--text-primary);">
                     <div class="flex justify-between">
@@ -929,6 +943,7 @@ aside {
                     </div>
                 </div>
             </div>
+            @endif
 
             <!-- 新しい会話ボタン -->
                 <div class="p-4 border-b border-gray-200" style="border-color: var(--border-color);">
@@ -966,8 +981,11 @@ aside {
                                     <div class="text-sm font-medium text-gray-900 truncate" style="color: var(--text-primary);">
                                         {{ $conv->title ?? '無題の会話' }}
                                     </div>
-                                    <div class="text-xs text-gray-500 mt-1" style="color: var(--text-secondary);">
-                                        {{ $conv->updated_at->diffForHumans() }}
+                                    <div class="text-xs text-gray-500 mt-1 flex items-center justify-between" style="color: var(--text-secondary);">
+                                        <span>{{ $conv->updated_at->diffForHumans() }}</span>
+                                        @if($conv->total_tokens > 0)
+                                            <span class="font-mono text-xs">{{ number_format($conv->total_tokens) }} tok</span>
+                                        @endif
                                     </div>
                                     @if($conv->tags->isNotEmpty())
                                         <div class="flex flex-wrap gap-1 mt-2">
@@ -1005,8 +1023,11 @@ aside {
                                     <div class="text-sm font-medium text-gray-900 truncate" style="color: var(--text-primary);">
                                         {{ $conv->title ?? '無題の会話' }}
                                     </div>
-                                    <div class="text-xs text-gray-500 mt-1" style="color: var(--text-secondary);">
-                                        {{ $conv->updated_at->diffForHumans() }}
+                                    <div class="text-xs text-gray-500 mt-1 flex items-center justify-between" style="color: var(--text-secondary);">
+                                        <span>{{ $conv->updated_at->diffForHumans() }}</span>
+                                        @if($conv->total_tokens > 0)
+                                            <span class="font-mono text-xs">{{ number_format($conv->total_tokens) }} tok</span>
+                                        @endif
                                     </div>
                                     @if($conv->tags->isNotEmpty())
                                         <div class="flex flex-wrap gap-1 mt-2">
@@ -1283,6 +1304,7 @@ aside {
         }
 
         // ダークモード切り替え時のMermaidテーマ変更
+        // ダークモード切り替え時にグラフを再描画
         function applyTheme(theme) {
             document.documentElement.setAttribute('data-theme', theme);
 
@@ -1306,6 +1328,17 @@ aside {
                 element.innerHTML = originalContent;
                 mermaid.init(undefined, element);
             });
+
+            // グラフが表示中なら再描画
+            if (tokenChart) {
+                const modal = document.getElementById('statsModal');
+                if (!modal.classList.contains('hidden')) {
+                    // 現在のデータを保持して再描画
+                    const currentData = tokenChart.data;
+                    tokenChart.destroy();
+                    // 再描画は次回openStatsModalで行う
+                }
+            }
 
             console.log('テーマ変更:', theme);
         }
@@ -2205,6 +2238,268 @@ aside {
                 alert('削除に失敗しました');
             }
         }
+
+        // ========== トークン使用統計モーダル ==========
+        var tokenChart = null;  // let から var に変更
+
+        async function openStatsModal() {
+            const modal = document.getElementById('statsModal');
+            const loading = document.getElementById('statsLoading');
+            const content = document.getElementById('statsContent');
+
+            modal.classList.remove('hidden');
+            loading.classList.remove('hidden');
+            content.classList.add('hidden');
+
+            try {
+                const response = await fetch('/stats/tokens/detailed');
+                const data = await response.json();
+
+                console.log('統計データ:', data);  // デバッグ用
+
+                // サマリー更新
+                document.getElementById('totalTokens').textContent = data.monthly.total_tokens.toLocaleString();
+                document.getElementById('totalCost').textContent = '¥' + data.monthly.cost_jpy.toFixed(2);
+                document.getElementById('totalMessages').textContent = data.monthly.message_count.toLocaleString();
+
+                // グラフ描画
+                renderTokenChart(data.daily);
+
+                // 会話リスト表示
+                renderConversationList(data.conversations);
+
+                loading.classList.add('hidden');
+                content.classList.remove('hidden');
+            } catch (error) {
+                console.error('統計の読み込みエラー:', error);
+                alert('統計の読み込みに失敗しました: ' + error.message);
+                closeStatsModal();
+            }
+        }
+
+        function closeStatsModal(event) {
+            if (event && event.target.id !== 'statsModal') return;
+
+            const modal = document.getElementById('statsModal');
+            modal.classList.add('hidden');
+
+            // グラフを破棄
+            if (tokenChart) {
+                tokenChart.destroy();
+                tokenChart = null;
+            }
+        }
+
+        function renderTokenChart(dailyData) {
+            const ctx = document.getElementById('tokenChart');
+
+            if (!ctx) {
+                console.error('Canvas element not found');
+                return;
+            }
+
+            // 既存のグラフを破棄
+            if (tokenChart) {
+                tokenChart.destroy();
+                tokenChart = null;
+            }
+
+            // データが空の場合
+            if (!dailyData || dailyData.length === 0) {
+                console.log('日別データが空です');
+                ctx.parentElement.innerHTML = '<p class="text-center py-8" style="color: var(--text-secondary);">まだデータがありません</p>';
+                return;
+            }
+
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            const textColor = isDark ? '#f9fafb' : '#111827';
+            const gridColor = isDark ? '#374151' : '#e5e7eb';
+
+            try {
+                tokenChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: dailyData.map(d => {
+                            const date = new Date(d.date);
+                            return (date.getMonth() + 1) + '/' + date.getDate();
+                        }),
+                        datasets: [
+                            {
+                                label: '入力トークン',
+                                data: dailyData.map(d => d.input_tokens || 0),
+                                backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                                borderColor: 'rgba(59, 130, 246, 1)',
+                                borderWidth: 1
+                            },
+                            {
+                                label: '出力トークン',
+                                data: dailyData.map(d => d.output_tokens || 0),
+                                backgroundColor: 'rgba(16, 185, 129, 0.7)',
+                                borderColor: 'rgba(16, 185, 129, 1)',
+                                borderWidth: 1
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false,
+                        },
+                        scales: {
+                            x: {
+                                stacked: true,
+                                ticks: { color: textColor },
+                                grid: { color: gridColor }
+                            },
+                            y: {
+                                stacked: true,
+                                beginAtZero: true,
+                                ticks: {
+                                    color: textColor,
+                                    callback: function(value) {
+                                        return value.toLocaleString();
+                                    }
+                                },
+                                grid: { color: gridColor }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                labels: { color: textColor }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.dataset.label + ': ' + context.parsed.y.toLocaleString() + ' tokens';
+                                    },
+                                    footer: function(tooltipItems) {
+                                        const index = tooltipItems[0].dataIndex;
+                                        const data = dailyData[index];
+                                        return '合計: ' + (data.total_tokens || 0).toLocaleString() + ' tokens\n' +
+                                            'コスト: ¥' + (data.cost_jpy || 0).toFixed(2);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+                console.log('グラフ描画完了');
+            } catch (error) {
+                console.error('グラフ描画エラー:', error);
+            }
+        }
+
+        function renderConversationList(conversations) {
+            const listContainer = document.getElementById('conversationList');
+
+            if (!listContainer) {
+                console.error('会話リストコンテナが見つかりません');
+                return;
+            }
+
+            if (!conversations || conversations.length === 0) {
+                listContainer.innerHTML = '<p style="color: var(--text-secondary);" class="text-center py-4">データがありません</p>';
+                return;
+            }
+
+            listContainer.innerHTML = conversations.map((conv, index) => `
+                <div class="p-4 rounded-lg hover:bg-opacity-80 transition" style="background: var(--bg-tertiary);">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2">
+                                <span class="text-lg font-bold" style="color: var(--text-secondary);">#${index + 1}</span>
+                                <a href="/chat?conversation=${conv.id}" class="text-sm font-medium hover:underline truncate" style="color: var(--text-primary);" onclick="closeStatsModal()">
+                                    ${conv.title || '無題の会話'}
+                                </a>
+                            </div>
+                            <div class="flex gap-4 mt-2 text-xs" style="color: var(--text-secondary);">
+                                <span>📊 ${(conv.total_tokens || 0).toLocaleString()} tokens</span>
+                                <span>💬 ${conv.message_count || 0} メッセージ</span>
+                            </div>
+                        </div>
+                        <div class="text-right ml-4">
+                            <div class="text-lg font-bold" style="color: var(--text-primary);">¥${(conv.cost_jpy || 0).toFixed(2)}</div>
+                            <div class="text-xs" style="color: var(--text-secondary);">
+                                入力: ${(conv.input_tokens || 0).toLocaleString()}<br>
+                                出力: ${(conv.output_tokens || 0).toLocaleString()}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            console.log('会話リスト描画完了');
+        }
+
+        // Escキーでモーダルを閉じる
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('statsModal');
+                if (modal && !modal.classList.contains('hidden')) {
+                    closeStatsModal();
+                }
+            }
+        });
+
     </script>
+
+    <!-- トークン使用統計モーダル -->
+    <div id="statsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onclick="closeStatsModal(event)">
+        <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden"
+             style="background: var(--bg-primary);"
+             onclick="event.stopPropagation()">
+            <!-- ヘッダー -->
+            <div class="flex items-center justify-between p-6 border-b" style="border-color: var(--border-color);">
+                <h2 class="text-2xl font-bold" style="color: var(--text-primary);">📊 トークン使用統計</h2>
+                <button onclick="closeStatsModal()" class="text-gray-500 hover:text-gray-700 text-2xl">×</button>
+            </div>
+
+            <!-- コンテンツ -->
+            <div class="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
+                <!-- ローディング -->
+                <div id="statsLoading" class="text-center py-8">
+                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <p class="mt-2" style="color: var(--text-secondary);">読み込み中...</p>
+                </div>
+
+                <!-- 統計コンテンツ -->
+                <div id="statsContent" class="hidden space-y-6">
+                    <!-- 月間サマリー -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="p-4 rounded-lg" style="background: var(--bg-tertiary);">
+                            <div class="text-sm" style="color: var(--text-secondary);">合計トークン</div>
+                            <div class="text-2xl font-bold mt-1" style="color: var(--text-primary);" id="totalTokens">-</div>
+                        </div>
+                        <div class="p-4 rounded-lg" style="background: var(--bg-tertiary);">
+                            <div class="text-sm" style="color: var(--text-secondary);">合計コスト</div>
+                            <div class="text-2xl font-bold mt-1" style="color: var(--text-primary);" id="totalCost">-</div>
+                        </div>
+                        <div class="p-4 rounded-lg" style="background: var(--bg-tertiary);">
+                            <div class="text-sm" style="color: var(--text-secondary);">メッセージ数</div>
+                            <div class="text-2xl font-bold mt-1" style="color: var(--text-primary);" id="totalMessages">-</div>
+                        </div>
+                    </div>
+
+                    <!-- グラフ -->
+                    <div>
+                        <h3 class="text-lg font-semibold mb-4" style="color: var(--text-primary);">日別使用量</h3>
+                        <div class="p-4 rounded-lg" style="background: var(--bg-secondary);">
+                            <canvas id="tokenChart" height="80"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- 会話別トップ10 -->
+                    <div>
+                        <h3 class="text-lg font-semibold mb-4" style="color: var(--text-primary);">使用量の多い会話 Top 10</h3>
+                        <div class="space-y-2" id="conversationList"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>

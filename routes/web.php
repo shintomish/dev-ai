@@ -31,3 +31,7 @@ Route::get('/chat/new', [ChatController::class, 'new'])->name('chat.new');
 Route::post('/chat/send', [ChatController::class, 'send'])->name('chat.send');
 Route::post('/chat/send-stream', [ChatController::class, 'sendStream'])->name('chat.send.stream');
 
+// トークン使用統計（詳細）
+Route::get('/stats/tokens/detailed', [ChatController::class, 'getDetailedStats'])->name('stats.tokens.detailed');
+
+
