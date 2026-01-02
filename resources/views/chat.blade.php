@@ -22,6 +22,67 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
 
     <style>
+        /* ===== ダークモード用CSS変数 ===== */
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f9fafb;
+            --bg-tertiary: #f3f4f6;
+            --text-primary: #111827;
+            --text-secondary: #6b7280;
+            --text-tertiary: #9ca3af;
+            --border-color: #e5e7eb;
+            --border-color-dark: #d1d5db;
+            --user-msg-bg: #3b82f6;
+            --user-msg-text: #ffffff;
+            --ai-msg-bg: #ffffff;
+            --ai-msg-text: #111827;
+            --ai-msg-border: #e5e7eb;
+            --code-bg: #1e293b;
+            --code-text: #e2e8f0;
+            --inline-code-bg: #1e293b;
+            --inline-code-text: #22d3ee;
+            --hover-bg: #f3f4f6;
+            --error-bg: #fee2e2;
+            --error-text: #991b1b;
+            --error-border: #fca5a5;
+            --loading-bg: #f3f4f6;
+            --loading-text: #6b7280;
+            --input-bg: #ffffff;
+            --scrollbar-track: #f9fafb;
+            --scrollbar-thumb: #d1d5db;
+            --scrollbar-thumb-hover: #9ca3af;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #1f2937;
+            --bg-secondary: #111827;
+            --bg-tertiary: #374151;
+            --text-primary: #f9fafb;
+            --text-secondary: #d1d5db;
+            --text-tertiary: #9ca3af;
+            --border-color: #374151;
+            --border-color-dark: #4b5563;
+            --user-msg-bg: #2563eb;
+            --user-msg-text: #ffffff;
+            --ai-msg-bg: #374151;
+            --ai-msg-text: #f9fafb;
+            --ai-msg-border: #4b5563;
+            --code-bg: #0f172a;
+            --code-text: #e2e8f0;
+            --inline-code-bg: #0f172a;
+            --inline-code-text: #22d3ee;
+            --hover-bg: #374151;
+            --error-bg: #7f1d1d;
+            --error-text: #fca5a5;
+            --error-border: #991b1b;
+            --loading-bg: #374151;
+            --loading-text: #9ca3af;
+            --input-bg: #1f2937;
+            --scrollbar-track: #111827;
+            --scrollbar-thumb: #4b5563;
+            --scrollbar-thumb-hover: #6b7280;
+        }
+
         /* ===== 全体レイアウト ===== */
         * {
             box-sizing: border-box;
@@ -36,7 +97,9 @@
         }
 
         body {
-            background: #f9fafb;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            transition: background-color 0.3s, color 0.3s;
         }
 
         /* メインコンテナ */
@@ -53,7 +116,7 @@
         }
 
         /* ===== サイドバー ===== */
-        aside {
+aside {
             flex-shrink: 0;
             flex-grow: 0;
             min-width: 16rem;
@@ -62,8 +125,8 @@
             height: 100vh;
             overflow-y: auto;
             overflow-x: hidden;
-            background: white;
-            border-right: 1px solid #e5e7eb;
+            background: var(--bg-primary);
+            border-right: 1px solid var(--border-color);
         }
 
         aside::-webkit-scrollbar {
@@ -71,20 +134,19 @@
         }
 
         aside::-webkit-scrollbar-track {
-            background: #f9fafb;
+            background: var(--scrollbar-track);
         }
 
         aside::-webkit-scrollbar-thumb {
-            background: #d1d5db;
+            background: var(--scrollbar-thumb);
             border-radius: 3px;
         }
 
         aside::-webkit-scrollbar-thumb:hover {
-            background: #9ca3af;
+            background: var(--scrollbar-thumb-hover);
         }
 
         /* ===== サイドバーレイアウト統一 ===== */
-
         /* 会話リストコンテナ */
         aside .space-y-2 {
             display: flex;
@@ -168,12 +230,12 @@
         }
 
         /* チャットメッセージ表示エリア */
-        #chatMessages {
+#chatMessages {
             flex: 1;
             overflow-y: auto;
             overflow-x: hidden !important;
             padding: 1rem;
-            background: #f9fafb;
+            background: var(--bg-secondary);
             min-height: 0;
             max-width: 100% !important;
         }
@@ -183,16 +245,16 @@
         }
 
         #chatMessages::-webkit-scrollbar-track {
-            background: #f1f1f1;
+            background: var(--scrollbar-track);
         }
 
         #chatMessages::-webkit-scrollbar-thumb {
-            background: #888;
+            background: var(--scrollbar-thumb);
             border-radius: 4px;
         }
 
         #chatMessages::-webkit-scrollbar-thumb:hover {
-            background: #555;
+            background: var(--scrollbar-thumb-hover);
         }
 
         /* ===== メッセージスタイル ===== */
@@ -210,8 +272,8 @@
         }
 
         .message.user .message-content {
-            background: #3b82f6;
-            color: white;
+            background: var(--user-msg-bg);
+            color: var(--user-msg-text);
             padding: 0.75rem 1rem;
             border-radius: 1rem;
             max-width: min(80%, 800px);
@@ -226,11 +288,12 @@
         }
 
         .message.assistant .message-content {
-            background: white;
+            background: var(--ai-msg-bg);
+            color: var(--ai-msg-text);
             padding: 0.75rem 1rem;
             border-radius: 1rem;
             max-width: min(80%, 800px);
-            border: 1px solid #e5e7eb;
+            border: 1px solid var(--ai-msg-border);
             word-wrap: break-word;
             overflow-wrap: break-word;
             word-break: break-word;
@@ -238,9 +301,9 @@
 
         /* エラーメッセージ */
         .message.error .message-content {
-            background: #fee2e2;
-            color: #991b1b;
-            border: 1px solid #fca5a5;
+            background: var(--error-bg);
+            color: var(--error-text);
+            border: 1px solid var(--error-border);
             padding: 0.75rem 1rem;
             border-radius: 0.5rem;
             max-width: min(80%, 800px);
@@ -248,8 +311,8 @@
 
         /* ローディング */
         .message.loading .message-content {
-            background: #f3f4f6;
-            color: #6b7280;
+            background: var(--loading-bg);
+            color: var(--loading-text);
             padding: 0.75rem 1rem;
             border-radius: 1rem;
             max-width: min(80%, 800px);
@@ -287,8 +350,8 @@
 
         /* ===== コードブロック ===== */
         .message-content pre {
-            background: #1e293b;
-            color: #e2e8f0;
+            background: var(--code-bg);
+            color: var(--code-text);
             padding: 1rem;
             padding-top: 2rem;
             border-radius: 0.5rem;
@@ -308,8 +371,8 @@
 
         /* インラインコード */
         .message-content code {
-            background: #1e293b;
-            color: #22d3ee;
+            background: var(--inline-code-bg);
+            color: var(--inline-code-text);
             padding: 0.2rem 0.4rem;
             border-radius: 0.25rem;
             font-family: 'Courier New', monospace;
@@ -421,8 +484,8 @@
         #chatForm {
             flex-shrink: 0;
             flex-grow: 0;
-            border-top: 1px solid #e5e7eb;
-            background: white;
+            border-top: 1px solid var(--border-color);
+            background: var(--bg-primary);
             padding: 1rem;
             max-width: 100%;
         }
@@ -441,7 +504,8 @@
         #fileList {
             margin-top: 0.5rem;
             padding: 0.5rem;
-            background: #f3f4f6;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
             border-radius: 0.25rem;
             font-size: 0.875rem;
             max-width: 100%;
@@ -456,6 +520,24 @@
             word-wrap: break-word;
             overflow-wrap: break-word;
             word-break: break-all;
+            color: var(--text-primary);
+        }
+        .file-item button {
+            color: #ef4444;
+        }
+        [data-theme="dark"] .file-item button {
+            color: #f87171;
+        }
+
+        /* プレースホルダー */
+        ::placeholder {
+            color: var(--text-tertiary);
+            opacity: 0.7;
+        }
+
+        [data-theme="dark"] ::placeholder {
+            color: var(--text-tertiary);
+            opacity: 0.5;
         }
 
         /* ===== その他 ===== */
@@ -467,7 +549,8 @@
         .tag {
             display: inline-block;
             padding: 0.125rem 0.5rem;
-            background: #e5e7eb;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
             border-radius: 9999px;
             font-size: 0.75rem;
             margin-right: 0.25rem;
@@ -489,7 +572,7 @@
         }
 
         .conversation-item:hover {
-            background-color: #f3f4f6;
+            background-color: var(--hover-bg);
         }
 
         .conversation-item.active {
@@ -520,7 +603,7 @@
         }
         /* タブボタンのスタイル */
         .tab-button {
-            color: #6b7280;
+            color: var(--text-secondary);
             border-bottom: 2px solid transparent;
             transition: all 0.2s;
             cursor: pointer;
@@ -537,8 +620,8 @@
         }
 
         .tab-button:hover:not(.active) {
-            color: #4b5563;
-            background-color: #f9fafb;
+            color: var(--text-primary);
+            background-color: var(--hover-bg);
         }
 
         /* タブコンテンツ */
@@ -549,29 +632,50 @@
         .tab-content.active {
             display: block;
         }
+
+        /* 検索結果のハイライト（ダークモード対応） */
+        mark {
+            background: #fef08a;
+            color: #000000;
+        }
+
+        [data-theme="dark"] mark {
+            background: #854d0e;
+            color: #fef3c7;
+        }
+
+        /* フォーカス時のリング（ダークモード対応） */
+        .focus\:ring-2:focus {
+            --tw-ring-color: #3b82f6;
+        }
+
+        [data-theme="dark"] .focus\:ring-2:focus {
+            --tw-ring-color: #2563eb;
+        }
     </style>
 </head>
 <body>
     <div class="flex h-screen">
         <!-- サイドバー -->
-        <aside class="w-80 bg-white border-r border-gray-200 flex flex-col">
-
+        <aside class="w-80 bg-white border-r border-gray-200 flex flex-col" style="background: var(--bg-primary); border-color: var(--border-color);">
             <!-- 検索ボックス -->
-            <div class="p-4 border-b border-gray-200">
+            <div class="p-4 border-b border-gray-200" style="border-color: var(--border-color);">
                 <div class="relative">
                     <input
                         type="text"
                         id="searchInput"
                         placeholder="会話を検索..."
                         class="w-full px-4 py-2 pl-10 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        style="background: var(--input-bg); color: var(--text-primary); border-color: var(--border-color);"
                         autocomplete="off"
                     >
-                    <svg class="absolute left-3 top-2.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="absolute left-3 top-2.5 w-5 h-5 text-gray-400" style="color: var(--text-secondary);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                     </svg>
                     <button
                         id="clearSearch"
                         class="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600 hidden"
+                        style="color: var(--text-secondary);"
                         title="検索をクリア"
                     >
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -579,21 +683,21 @@
                         </svg>
                     </button>
                 </div>
-                <div id="searchResults" class="mt-2 text-sm text-gray-500 hidden">
+                <div id="searchResults" class="mt-2 text-sm text-gray-500 hidden" style="color: var(--text-secondary);">
                     <span id="resultCount">0</span> 件の会話が見つかりました
                 </div>
             </div>
 
             <!-- 新しい会話ボタン -->
-            <div class="p-4 border-b border-gray-200">
-                <a href="{{ route('chat.new') }}" class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
-                    <span>➕</span>
-                    <span>新しい会話</span>
-                </a>
-            </div>
+                <div class="p-4 border-b border-gray-200" style="border-color: var(--border-color);">
+                    <a href="{{ route('chat.new') }}" class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
+                        <span>➕</span>
+                        <span>新しい会話</span>
+                    </a>
+                </div>
 
             <!-- タブボタン -->
-            <div class="flex border-b border-gray-200">
+            <div class="flex border-b border-gray-200" style="border-color: var(--border-color);">
                 <button class="tab-button active flex-1 px-4 py-2 text-sm font-medium" data-tab="recent">
                     最近
                 </button>
@@ -615,11 +719,12 @@
                                     ☆
                                 </button>
                                 <a href="{{ route('chat.index', ['conversation' => $conv->id]) }}"
-                                class="flex-1 block p-3 rounded-lg hover:bg-gray-100 {{ $conversation && $conversation->id === $conv->id ? 'bg-blue-50 border border-blue-200' : 'bg-white border border-gray-200' }}">
-                                    <div class="text-sm font-medium text-gray-900 truncate">
+                                class="flex-1 block p-3 rounded-lg hover:bg-gray-100 {{ $conversation && $conversation->id === $conv->id ? 'bg-blue-50 border border-blue-200' : 'bg-white border border-gray-200' }}"
+                                style="background: {{ $conversation && $conversation->id === $conv->id ? '#dbeafe' : 'var(--bg-primary)' }}; color: var(--text-primary); border-color: var(--border-color);">
+                                    <div class="text-sm font-medium text-gray-900 truncate" style="color: var(--text-primary);">
                                         {{ $conv->title ?? '無題の会話' }}
                                     </div>
-                                    <div class="text-xs text-gray-500 mt-1">
+                                    <div class="text-xs text-gray-500 mt-1" style="color: var(--text-secondary);">
                                         {{ $conv->updated_at->diffForHumans() }}
                                     </div>
                                     @if($conv->tags->isNotEmpty())
@@ -637,7 +742,7 @@
                                 </button>
                             </div>
                         @empty
-                            <p class="text-sm text-gray-500 text-center py-4">会話履歴がありません</p>
+                            <p class="text-sm text-gray-500 text-center py-4" style="color: var(--text-secondary);">会話履歴がありません</p>
                         @endforelse
                     </div>
                 </div>
@@ -653,11 +758,12 @@
                                     ⭐
                                 </button>
                                 <a href="{{ route('chat.index', ['conversation' => $conv->id]) }}"
-                                class="flex-1 block p-3 rounded-lg hover:bg-gray-100 {{ $conversation && $conversation->id === $conv->id ? 'bg-blue-50 border border-blue-200' : 'bg-white border border-gray-200' }}">
-                                    <div class="text-sm font-medium text-gray-900 truncate">
+                                class="flex-1 block p-3 rounded-lg hover:bg-gray-100 {{ $conversation && $conversation->id === $conv->id ? 'bg-blue-50 border border-blue-200' : 'bg-white border border-gray-200' }}"
+                                style="background: {{ $conversation && $conversation->id === $conv->id ? '#dbeafe' : 'var(--bg-primary)' }}; color: var(--text-primary); border-color: var(--border-color);">
+                                    <div class="text-sm font-medium text-gray-900 truncate" style="color: var(--text-primary);">
                                         {{ $conv->title ?? '無題の会話' }}
                                     </div>
-                                    <div class="text-xs text-gray-500 mt-1">
+                                    <div class="text-xs text-gray-500 mt-1" style="color: var(--text-secondary);">
                                         {{ $conv->updated_at->diffForHumans() }}
                                     </div>
                                     @if($conv->tags->isNotEmpty())
@@ -675,7 +781,7 @@
                                 </button>
                             </div>
                         @empty
-                            <p class="text-sm text-gray-500 text-center py-4">お気に入りはありません</p>
+                            <p class="text-sm text-gray-500 text-center py-4" style="color: var(--text-secondary);">お気に入りはありません</p>
                         @endforelse
                     </div>
                 </div>
@@ -685,13 +791,21 @@
         <!-- メインチャットエリア -->
         <main>
             <!-- ヘッダー -->
-            <div class="border-b border-gray-200 bg-white p-4">
+            <div class="border-b border-gray-200 bg-white p-4" style="background: var(--bg-primary); border-color: var(--border-color);">
                 <div class="flex items-center justify-between">
-                    <h1 class="text-xl font-bold text-gray-900">
+                    <h1 class="text-xl font-bold text-gray-900" style="color: var(--text-primary);">
                         {{ $conversation ? $conversation->title : '新しい会話' }}
                     </h1>
-                    @if($conversation)
-                        <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2">
+                        <!-- ダークモード切り替えボタン -->
+                        <button onclick="toggleDarkMode()"
+                                id="darkModeToggle"
+                                class="px-3 py-1 text-xl hover:scale-110 transition-transform"
+                                title="ダークモード切り替え">
+                            🌙
+                        </button>
+
+                        @if($conversation)
                             <!-- お気に入りトグル -->
                             <button onclick="toggleFavoriteHeader({{ $conversation->id }})"
                                     class="px-3 py-1 text-xl hover:scale-110 transition-transform"
@@ -701,22 +815,22 @@
 
                             <!-- タグ管理 -->
                             <div class="relative">
-                                <button onclick="toggleTagMenu()" class="px-3 py-1 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">
+                                <button onclick="toggleTagMenu()" class="px-3 py-1 text-sm border border-gray-300 rounded-lg hover:bg-gray-50" style="background: var(--bg-primary); color: var(--text-primary); border-color: var(--border-color);">
                                     🏷️ タグ
                                 </button>
-                                <div id="tagMenu" class="hidden absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                                <div id="tagMenu" class="hidden absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50" style="background: var(--bg-primary); border-color: var(--border-color);">
                                     <div class="p-3">
-                                        <input type="text" id="newTagInput" placeholder="新しいタグ..." class="w-full px-3 py-1 text-sm border border-gray-300 rounded mb-2">
+                                        <input type="text" id="newTagInput" placeholder="新しいタグ..." class="w-full px-3 py-1 text-sm border border-gray-300 rounded mb-2" style="background: var(--input-bg); color: var(--text-primary); border-color: var(--border-color);">
                                         <button onclick="addNewTag()" class="w-full px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">追加</button>
                                     </div>
-                                    <div class="p-2 max-h-60 overflow-y-auto border-t">
+                                    <div class="p-2 max-h-60 overflow-y-auto border-t" style="border-color: var(--border-color);">
                                         @foreach($allTags as $tag)
-                                            <label class="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
+                                            <label class="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer" style="color: var(--text-primary);">
                                                 <input type="checkbox"
-                                                       value="{{ $tag->id }}"
-                                                       {{ $conversation->tags->contains($tag->id) ? 'checked' : '' }}
-                                                       onchange="handleTagChange({{ $conversation->id }}, {{ $tag->id }}, this.checked)"
-                                                       class="rounded">
+                                                    value="{{ $tag->id }}"
+                                                    {{ $conversation->tags->contains($tag->id) ? 'checked' : '' }}
+                                                    onchange="handleTagChange({{ $conversation->id }}, {{ $tag->id }}, this.checked)"
+                                                    class="rounded">
                                                 <span class="text-sm">{{ $tag->name }}</span>
                                             </label>
                                         @endforeach
@@ -726,20 +840,20 @@
 
                             <!-- エクスポート -->
                             <div class="relative">
-                                <button onclick="toggleExportMenu()" class="px-3 py-1 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">
+                                <button onclick="toggleExportMenu()" class="px-3 py-1 text-sm border border-gray-300 rounded-lg hover:bg-gray-50" style="background: var(--bg-primary); color: var(--text-primary); border-color: var(--border-color);">
                                     📥 エクスポート
                                 </button>
-                                <div id="exportMenu" class="hidden absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                                <div id="exportMenu" class="hidden absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-50" style="background: var(--bg-primary); border-color: var(--border-color);">
                                     <a href="{{ route('conversations.export', ['conversation' => $conversation->id, 'format' => 'markdown']) }}"
-                                       class="block px-4 py-2 text-sm hover:bg-gray-50 rounded-t-lg">
+                                    class="block px-4 py-2 text-sm hover:bg-gray-50 rounded-t-lg" style="color: var(--text-primary);">
                                         📝 Markdown
                                     </a>
                                     <a href="{{ route('conversations.export', ['conversation' => $conversation->id, 'format' => 'json']) }}"
-                                       class="block px-4 py-2 text-sm hover:bg-gray-50">
+                                    class="block px-4 py-2 text-sm hover:bg-gray-50" style="color: var(--text-primary);">
                                         📊 JSON
                                     </a>
                                     <a href="{{ route('conversations.export', ['conversation' => $conversation->id, 'format' => 'txt']) }}"
-                                       class="block px-4 py-2 text-sm hover:bg-gray-50 rounded-b-lg">
+                                    class="block px-4 py-2 text-sm hover:bg-gray-50 rounded-b-lg" style="color: var(--text-primary);">
                                         📄 テキスト
                                     </a>
                                 </div>
@@ -751,11 +865,10 @@
                                     title="この会話を削除">
                                 🗑️ 削除
                             </button>
-                        </div>
-                    @endif
+                        @endif
+                    </div>
                 </div>
             </div>
-
             <!-- チャットメッセージ -->
             <div id="chatMessages">
                 @foreach($messages as $message)
@@ -768,59 +881,90 @@
             </div>
 
             <!-- 入力フォーム -->
-            <form id="chatForm">
+            <form id="chatForm" style="background: var(--bg-primary); border-color: var(--border-color);">
                 <input type="hidden" name="conversation_id" id="conversationId" value="{{ $conversation->id ?? '' }}">
 
                 <!-- モード選択 -->
                 <div class="flex items-center gap-4 mb-3">
                     <label class="flex items-center gap-2">
                         <input type="radio" name="mode" value="dev" {{ !$conversation || $conversation->mode === 'dev' ? 'checked' : '' }}
-                               class="text-blue-600" {{ $conversation ? 'disabled' : '' }}>
-                        <span class="text-sm font-medium">🔧 開発支援</span>
+                            class="text-blue-600" {{ $conversation ? 'disabled' : '' }}>
+                        <span class="text-sm font-medium" style="color: var(--text-primary);">🔧 開発支援</span>
                     </label>
                     <label class="flex items-center gap-2">
                         <input type="radio" name="mode" value="study" {{ $conversation && $conversation->mode === 'study' ? 'checked' : '' }}
-                               class="text-green-600" {{ $conversation ? 'disabled' : '' }}>
-                        <span class="text-sm font-medium">📚 学習支援</span>
+                            class="text-green-600" {{ $conversation ? 'disabled' : '' }}>
+                        <span class="text-sm font-medium" style="color: var(--text-primary);">📚 学習支援</span>
                     </label>
                     <label class="flex items-center gap-2 ml-auto">
                         <input type="checkbox" id="streamMode" class="rounded">
-                        <span class="text-sm">⚡ ストリーミング</span>
+                        <span class="text-sm" style="color: var(--text-primary);">⚡ ストリーミング</span>
                     </label>
                 </div>
 
                 <!-- ファイルアップロード -->
                 <div class="mb-3">
-                    <input type="file" id="fileInput" name="files[]" multiple class="hidden" accept=".txt,.log,.php,.js,.py,.java,.cpp,.h,.md,.json,.xml,.yaml,.yml">
+                    <input type="file" id="fileInput" name="files[]" multiple class="hidden" accept=".txt,.log,.php,.js,.py,.java,.cpp,.h,.md,.json,.xml,.yaml,.yml,.png,.jpg,.jpeg,.gif,.webp">
                     <button type="button" onclick="document.getElementById('fileInput').click()"
-                            class="px-3 py-1 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">
+                            class="px-3 py-1 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                            style="background: var(--bg-primary); color: var(--text-primary); border-color: var(--border-color);">
                         📎 ファイルを添付
                     </button>
-                    <div id="fileList"></div>
+                    <!-- ファイルリスト表示エリア（ダークモード対応） -->
+                    <div id="fileList" style="background: var(--bg-tertiary); color: var(--text-primary);"></div>
                 </div>
 
                 <!-- メッセージ入力 -->
                 <div class="flex gap-2">
                     <textarea id="messageInput"
-                              name="message"
-                              placeholder="メッセージを入力..."
-                              rows="3"
-                              maxlength="10000"
-                              class="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                              required></textarea>
+                            name="message"
+                            placeholder="メッセージを入力..."
+                            rows="3"
+                            maxlength="10000"
+                            class="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                            style="background: var(--input-bg); color: var(--text-primary); border-color: var(--border-color);"
+                            required></textarea>
                     <div class="flex flex-col gap-2">
                         <button type="submit" id="sendButton"
                                 class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
                             送信
                         </button>
-                        <span id="charCount" class="text-xs text-gray-500 text-center">0 / 10000</span>
+                        <span id="charCount" class="text-xs text-gray-500 text-center" style="color: var(--text-secondary);">0 / 10000</span>
                     </div>
                 </div>
             </form>
+
         </main>
     </div>
 
     <script>
+        // ========== ダークモード機能 ==========
+        (function() {
+            // ページ読み込み時に保存された設定を適用
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            applyTheme(savedTheme);
+        })();
+
+        function toggleDarkMode() {
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            applyTheme(newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+
+            // ボタンのアイコンを変更
+            const toggleButton = document.getElementById('darkModeToggle');
+            if (toggleButton) {
+                toggleButton.textContent = theme === 'dark' ? '☀️' : '🌙';
+                toggleButton.title = theme === 'dark' ? 'ライトモード' : 'ダークモード';
+            }
+
+            console.log('テーマ変更:', theme);
+        }
+
         // ========== タブ切り替え機能 ==========
         document.addEventListener('DOMContentLoaded', function() {
             const tabButtons = document.querySelectorAll('.tab-button');
@@ -840,6 +984,31 @@
                 });
             });
         });
+
+        // ========== ダークモード機能 ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            // ローカルストレージから設定を読み込み
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            applyTheme(savedTheme);
+        });
+
+        function toggleDarkMode() {
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            applyTheme(newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+
+            // ボタンのアイコンを変更
+            const toggleButton = document.getElementById('darkModeToggle');
+            if (toggleButton) {
+                toggleButton.textContent = theme === 'dark' ? '☀️' : '🌙';
+                toggleButton.title = theme === 'dark' ? 'ライトモード' : 'ダークモード';
+            }
+        }
 
         // ========== 定数 ==========
         const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
@@ -1076,7 +1245,7 @@
                     const fileItem = document.createElement('div');
                     fileItem.className = 'file-item';
                     fileItem.innerHTML = `
-                        <span>📄 ${file.name} (${formatFileSize(file.size)})</span>
+                        <span style="color: var(--text-primary);">📄 ${file.name} (${formatFileSize(file.size)})</span>
                         <button type="button" onclick="removeFile('${file.name}')" class="text-red-500 hover:text-red-700">✕</button>
                     `;
                     fileList.appendChild(fileItem);
