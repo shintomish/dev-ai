@@ -20,6 +20,8 @@ class ChatController extends Controller
      */
     public function index(Request $request)
     {
+        Log::info('ChatController index START');
+
         $conversationId = $request->query('conversation');
 
         $conversation = $conversationId
@@ -44,6 +46,8 @@ class ChatController extends Controller
         // 今月の統計を取得
         $monthlyStats = $this->getMonthlyStats();
 
+        Log::info('ChatController index END');
+
         return view('chat', compact(
             'conversation',
             'messages',
@@ -59,6 +63,8 @@ class ChatController extends Controller
      */
     public function send(Request $request)
     {
+        Log::info('ChatController send START');
+
         // 1. バリデーション
         $request->validate([
             'message' => 'required|string|max:10000',
@@ -220,6 +226,8 @@ class ChatController extends Controller
                 ]);
 
                 $conversation->touch();
+
+                Log::info('ChatController send END');
 
                 return response()->json([
                     'success' => true,

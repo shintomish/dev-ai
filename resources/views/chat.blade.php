@@ -907,44 +907,43 @@ aside {
                 </div>
             </div>
 
-        <!-- トークン使用統計 -->
-            @if(isset($monthlyStats))
-            <div class="p-4 border-b border-gray-200 cursor-pointer hover:bg-opacity-80 transition"
-                style="border-color: var(--border-color); background: var(--bg-tertiary);"
-                onclick="openStatsModal()">
-                <div class="flex items-center justify-between mb-2">
-                    <div class="text-xs font-semibold uppercase" style="color: var(--text-secondary);">
-                        📊 今月の使用量
+            <!-- トークン使用統計 -->
+                @if(isset($monthlyStats))
+                <div class="p-4 border-b border-gray-200 cursor-pointer hover:bg-opacity-80 transition"
+                    style="border-color: var(--border-color); background: var(--bg-tertiary);"
+                    onclick="openStatsModal()">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="text-xs font-semibold uppercase" style="color: var(--text-secondary);">
+                            📊 今月の使用量
+                        </div>
+                        <svg class="w-4 h-4" style="color: var(--text-secondary);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
                     </div>
-                    <svg class="w-4 h-4" style="color: var(--text-secondary);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                    </svg>
+                    <div class="space-y-1 text-sm" style="color: var(--text-primary);">
+                        <div class="flex justify-between">
+                            <span>トークン:</span>
+                            <span class="font-mono">{{ number_format($monthlyStats['total_tokens'], 0, '.', ',') }}</span>
+                        </div>
+                        <div class="flex justify-between text-xs" style="color: var(--text-secondary);">
+                            <span>入力:</span>
+                            <span class="font-mono">{{ number_format($monthlyStats['input_tokens'], 0, '.', ',') }}</span>
+                        </div>
+                        <div class="flex justify-between text-xs" style="color: var(--text-secondary);">
+                            <span>出力:</span>
+                            <span class="font-mono">{{ number_format($monthlyStats['output_tokens'], 0, '.', ',') }}</span>
+                        </div>
+                        <div class="flex justify-between pt-1 border-t" style="border-color: var(--border-color);">
+                            <span>コスト:</span>
+                            <span class="font-mono font-semibold">¥{{ number_format($monthlyStats['cost_jpy'], 2, '.', ',') }}</span>
+                        </div>
+                        <div class="flex justify-between text-xs" style="color: var(--text-secondary);">
+                            <span>メッセージ数:</span>
+                            <span class="font-mono">{{ number_format($monthlyStats['message_count'], 0, '.', ',') }}</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="space-y-1 text-sm" style="color: var(--text-primary);">
-                    <div class="flex justify-between">
-                        <span>トークン:</span>
-                        <span class="font-mono">{{ number_format($monthlyStats['total_tokens']) }}</span>
-                    </div>
-                    <div class="flex justify-between text-xs" style="color: var(--text-secondary);">
-                        <span>入力:</span>
-                        <span class="font-mono">{{ number_format($monthlyStats['input_tokens']) }}</span>
-                    </div>
-                    <div class="flex justify-between text-xs" style="color: var(--text-secondary);">
-                        <span>出力:</span>
-                        <span class="font-mono">{{ number_format($monthlyStats['output_tokens']) }}</span>
-                    </div>
-                    <div class="flex justify-between pt-1 border-t" style="border-color: var(--border-color);">
-                        <span>コスト:</span>
-                        <span class="font-mono font-semibold">¥{{ number_format($monthlyStats['cost_jpy'], 2) }}</span>
-                    </div>
-                    <div class="flex justify-between text-xs" style="color: var(--text-secondary);">
-                        <span>メッセージ数:</span>
-                        <span class="font-mono">{{ $monthlyStats['message_count'] }}</span>
-                    </div>
-                </div>
-            </div>
-            @endif
-
+                @endif
             <!-- 新しい会話ボタン -->
                 <div class="p-4 border-b border-gray-200" style="border-color: var(--border-color);">
                     <a href="{{ route('chat.new') }}" class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
@@ -967,7 +966,7 @@ aside {
             <div class="flex-1 overflow-y-auto">
                 <!-- 最近の会話タブ -->
                 <div id="recent" class="tab-content active p-4">
-                    <div id="conversationList" class="space-y-2">
+                    <div id="conversationList1" class="space-y-2">
                         @forelse($recentConversations as $conv)
                             <div class="flex items-center gap-2">
                                 <button onclick="toggleFavorite({{ $conv->id }}, event)"
@@ -1009,7 +1008,7 @@ aside {
 
                 <!-- お気に入りタブ -->
                 <div id="favorites" class="tab-content p-4">
-                    <div id="favoritesList" class="space-y-2">
+                    <div id="favoriteConversationList" class="space-y-2">
                         @forelse($favoriteConversations as $conv)
                             <div class="flex items-center gap-2">
                                 <button onclick="toggleFavorite({{ $conv->id }}, event)"
@@ -1388,11 +1387,11 @@ aside {
 
         // 検索結果を表示
         function displaySearchResults(conversations, query) {
-            const conversationList = document.getElementById('conversationList');
+            const conversationList = document.getElementById('recentConversationList');
             const favoritesList = document.getElementById('favoritesList');
 
             if (!conversationList) {
-                console.error('conversationList が見つかりません');
+                console.error('recentConversationList  が見つかりません');
                 return;
             }
 
@@ -2240,7 +2239,13 @@ aside {
         }
 
         // ========== トークン使用統計モーダル ==========
-        var tokenChart = null;  // let から var に変更
+        var tokenChart = null;
+
+        // カンマ区切り用のヘルパー関数
+        function formatNumber(num) {
+            if (num === null || num === undefined) return '0';
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        }
 
         async function openStatsModal() {
             const modal = document.getElementById('statsModal');
@@ -2255,12 +2260,12 @@ aside {
                 const response = await fetch('/stats/tokens/detailed');
                 const data = await response.json();
 
-                console.log('統計データ:', data);  // デバッグ用
+                console.log('統計データ:', data);
 
-                // サマリー更新
-                document.getElementById('totalTokens').textContent = data.monthly.total_tokens.toLocaleString();
-                document.getElementById('totalCost').textContent = '¥' + data.monthly.cost_jpy.toFixed(2);
-                document.getElementById('totalMessages').textContent = data.monthly.message_count.toLocaleString();
+                // サマリー更新（手動カンマ区切り）
+                document.getElementById('totalTokens').textContent = formatNumber(data.monthly.total_tokens);
+                document.getElementById('totalCost').textContent = '¥' + data.monthly.cost_jpy.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+                document.getElementById('totalMessages').textContent = formatNumber(data.monthly.message_count);
 
                 // グラフ描画
                 renderTokenChart(data.daily);
@@ -2359,7 +2364,7 @@ aside {
                                 ticks: {
                                     color: textColor,
                                     callback: function(value) {
-                                        return value.toLocaleString();
+                                        return formatNumber(value);
                                     }
                                 },
                                 grid: { color: gridColor }
@@ -2372,13 +2377,13 @@ aside {
                             tooltip: {
                                 callbacks: {
                                     label: function(context) {
-                                        return context.dataset.label + ': ' + context.parsed.y.toLocaleString() + ' tokens';
+                                        return context.dataset.label + ': ' + formatNumber(context.parsed.y) + ' tokens';
                                     },
                                     footer: function(tooltipItems) {
                                         const index = tooltipItems[0].dataIndex;
                                         const data = dailyData[index];
-                                        return '合計: ' + (data.total_tokens || 0).toLocaleString() + ' tokens\n' +
-                                            'コスト: ¥' + (data.cost_jpy || 0).toFixed(2);
+                                        return '合計: ' + formatNumber(data.total_tokens || 0) + ' tokens\n' +
+                                            'コスト: ¥' + (data.cost_jpy || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
                                     }
                                 }
                             }
@@ -2394,6 +2399,9 @@ aside {
 
         function renderConversationList(conversations) {
             const listContainer = document.getElementById('conversationList');
+
+            console.log('conversationList要素:', listContainer);  // デバッグ
+            console.log('親要素:', listContainer?.parentElement?.id);  // デバッグ
 
             if (!listContainer) {
                 console.error('会話リストコンテナが見つかりません');
@@ -2416,15 +2424,15 @@ aside {
                                 </a>
                             </div>
                             <div class="flex gap-4 mt-2 text-xs" style="color: var(--text-secondary);">
-                                <span>📊 ${(conv.total_tokens || 0).toLocaleString()} tokens</span>
+                                <span>📊 ${formatNumber(conv.total_tokens || 0)} tokens</span>
                                 <span>💬 ${conv.message_count || 0} メッセージ</span>
                             </div>
                         </div>
                         <div class="text-right ml-4">
-                            <div class="text-lg font-bold" style="color: var(--text-primary);">¥${(conv.cost_jpy || 0).toFixed(2)}</div>
+                            <div class="text-lg font-bold" style="color: var(--text-primary);">¥${(conv.cost_jpy || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</div>
                             <div class="text-xs" style="color: var(--text-secondary);">
-                                入力: ${(conv.input_tokens || 0).toLocaleString()}<br>
-                                出力: ${(conv.output_tokens || 0).toLocaleString()}
+                                入力: ${formatNumber(conv.input_tokens || 0)}<br>
+                                出力: ${formatNumber(conv.output_tokens || 0)}
                             </div>
                         </div>
                     </div>
@@ -2471,15 +2479,15 @@ aside {
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div class="p-4 rounded-lg" style="background: var(--bg-tertiary);">
                             <div class="text-sm" style="color: var(--text-secondary);">合計トークン</div>
-                            <div class="text-2xl font-bold mt-1" style="color: var(--text-primary);" id="totalTokens">-</div>
+                            <div class="text-2xl font-bold mt-1 font-mono" style="color: var(--text-primary);" id="totalTokens">-</div>
                         </div>
                         <div class="p-4 rounded-lg" style="background: var(--bg-tertiary);">
                             <div class="text-sm" style="color: var(--text-secondary);">合計コスト</div>
-                            <div class="text-2xl font-bold mt-1" style="color: var(--text-primary);" id="totalCost">-</div>
+                            <div class="text-2xl font-bold mt-1 font-mono" style="color: var(--text-primary);" id="totalCost">-</div>
                         </div>
                         <div class="p-4 rounded-lg" style="background: var(--bg-tertiary);">
                             <div class="text-sm" style="color: var(--text-secondary);">メッセージ数</div>
-                            <div class="text-2xl font-bold mt-1" style="color: var(--text-primary);" id="totalMessages">-</div>
+                            <div class="text-2xl font-bold mt-1 font-mono" style="color: var(--text-primary);" id="totalMessages">-</div>
                         </div>
                     </div>
 
