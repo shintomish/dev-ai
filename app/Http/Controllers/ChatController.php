@@ -20,24 +20,33 @@ class ChatController extends Controller
      */
     public function index(Request $request)
     {
-        Log::info('ChatController index START');
+        // デバッグ用: 認証確認
+        \Log::info('ChatController index START');
+        \Log::info('Auth check: ' . (auth()->check() ? 'YES' : 'NO'));
+        \Log::info('User ID: ' . auth()->id());
+        \Log::info('User: ' . (auth()->user() ? auth()->user()->name : 'NULL'));
 
         $conversationId = $request->query('conversation');
 
+        // 自分の会話のみ取得
         $conversation = $conversationId
-            ? Conversation::findOrFail($conversationId)
+            ? Conversation::where('user_id', auth()->id())
+                          ->findOrFail($conversationId)
             : null;
 
         $messages = $conversation
             ? $conversation->messages()->orderBy('created_at', 'asc')->get()
             : collect();
 
-        $recentConversations = Conversation::latest()
+        // 自分の会話のみ取得
+        $recentConversations = Conversation::where('user_id', auth()->id())
             ->where('is_favorite', false)
+            ->latest()
             ->limit(10)
             ->get();
 
-        $favoriteConversations = Conversation::where('is_favorite', true)
+        $favoriteConversations = Conversation::where('user_id', auth()->id())
+            ->where('is_favorite', true)
             ->latest()
             ->get();
 
@@ -54,7 +63,7 @@ class ChatController extends Controller
             'recentConversations',
             'favoriteConversations',
             'allTags',
-            'monthlyStats'  // 追加
+            'monthlyStats'
         ));
     }
 
@@ -63,26 +72,64 @@ class ChatController extends Controller
      */
     public function send(Request $request)
     {
-        Log::info('ChatController send START');
+        // デバッグ用: 認証確認
+        \Log::info('ChatController send START');
+        \Log::info('Auth check: ' . (auth()->check() ? 'YES' : 'NO'));
+        \Log::info('User ID: ' . auth()->id());
+        \Log::info('User: ' . (auth()->user() ? auth()->user()->name : 'NULL'));
+
+        // 認証チェック（念のため）
+        if (!auth()->check()) {
+            \Log::error('User not authenticated in send()');
+            return response()->json(['error' => '認証が必要です'], 401);
+        }
 
         // 1. バリデーション
         $request->validate([
             'message' => 'required|string|max:10000',
+            'conversation_id' => 'nullable|integer|exists:conversations,id',
             'mode' => 'required|in:dev,study',
-            'conversation_id' => 'nullable|exists:conversations,id',
-            'files.*' => 'nullable|file|max:5120', // 5MB まで
+            'files.*' => 'nullable|file|max:10240',
         ]);
 
         // 2. 変数取得
         $messageText = $request->input('message');
-        $mode = $request->input('mode');
         $conversationId = $request->input('conversation_id');
+        $mode = $request->input('mode', 'dev');
+
+        \Log::info('send() - Input - User ID: ' . auth()->id() . ', Conversation ID: ' . ($conversationId ?? 'null') . ', Mode: ' . $mode);
 
         // 3. 会話取得または作成
         if ($conversationId) {
-            $conversation = Conversation::findOrFail($conversationId);
+            \Log::info('既存の会話を取得: ' . $conversationId);
+
+            // 自分の会話のみ取得
+            $conversation = Conversation::where('user_id', auth()->id())
+                                       ->findOrFail($conversationId);
+
+            \Log::info('会話取得成功 - ID: ' . $conversation->id . ', User ID: ' . $conversation->user_id);
+
         } else {
-            $conversation = Conversation::create(['mode' => $mode]);
+            \Log::info('新しい会話を作成中 - User ID: ' . auth()->id());
+
+            // 新しい会話を作成（user_idを明示的に設定）
+            $userId = auth()->id();
+            \Log::info('取得したUser ID: ' . $userId);
+
+            if (!$userId) {
+                \Log::error('User ID is null!');
+                return response()->json(['error' => 'ユーザーIDを取得できませんでした'], 500);
+            }
+
+            // 新しい会話を作成（user_idを設定）
+            $conversation = Conversation::create([
+                // 'user_id' => auth()->id(),
+                'user_id' => $userId,
+                'title' => '新しい会話',
+                'mode' => $mode,
+            ]);
+
+            \Log::info('新しい会話を作成 - ID: ' . $conversation->id . ', User ID: ' . $conversation->user_id);
         }
 
         // 4. ユーザーメッセージ保存
@@ -91,6 +138,8 @@ class ChatController extends Controller
             'role' => 'user',
             'content' => $messageText,
         ]);
+
+        \Log::info('ユーザーメッセージ保存 - ID: ' . $userMessage->id);
 
         // 5. ファイルアップロード処理
         $uploadedFiles = [];
@@ -279,20 +328,33 @@ class ChatController extends Controller
         ]);
 
         try {
-            // 会話の取得または作成
-            if ($validated['conversation_id']) {
-                $conversation = Conversation::findOrFail($validated['conversation_id']);
+            $messageText = $request->input('message');
+            $conversationId = $request->input('conversation_id');
+            $mode = $request->input('mode', 'dev');
+
+            \Log::info('sendStream() - User ID: ' . auth()->id() . ', Conversation ID: ' . $conversationId);
+
+            // 2. 会話の取得または作成
+            if ($conversationId) {
+                // 自分の会話のみ取得
+                $conversation = Conversation::where('user_id', auth()->id())
+                                        ->findOrFail($conversationId);
             } else {
+                // 新しい会話を作成（user_idを設定）
                 $conversation = Conversation::create([
-                    'title' => Str::limit($validated['message'], 50),
-                    'mode' => $validated['mode'],
+                    'user_id' => auth()->id(),
+                    'title' => '新しい会話',
+                    'mode' => $mode,
                 ]);
+
+                \Log::info('新しい会話を作成(Stream) - ID: ' . $conversation->id . ', User ID: ' . $conversation->user_id);
             }
 
-            // ユーザーメッセージを保存
-            $userMessage = $conversation->messages()->create([
+            // 3. ユーザーメッセージを保存
+            $userMessage = Message::create([
+                'conversation_id' => $conversation->id,
                 'role' => 'user',
-                'content' => $validated['message'],
+                'content' => $messageText,
             ]);
 
             // 会話履歴を取得
@@ -437,11 +499,15 @@ class ChatController extends Controller
      */
     public function destroy(Conversation $conversation)
     {
+        // 自分の会話かチェック
+        if ($conversation->user_id !== auth()->id()) {
+            abort(403, 'この会話にアクセスする権限がありません');
+        }
+
         $conversation->delete();
 
         return response()->json([
             'success' => true,
-            'message' => '会話を削除しました',
         ]);
     }
 
@@ -450,6 +516,11 @@ class ChatController extends Controller
      */
     public function toggleFavorite(Conversation $conversation)
     {
+        // 自分の会話かチェック
+        if ($conversation->user_id !== auth()->id()) {
+            abort(403, 'この会話にアクセスする権限がありません');
+        }
+
         $conversation->is_favorite = !$conversation->is_favorite;
         $conversation->save();
 
@@ -464,14 +535,26 @@ class ChatController extends Controller
      */
     public function new()
     {
-        $recentConversations = Conversation::latest()
+        // デバッグ用
+        \Log::info('new() - User ID: ' . auth()->id() . ', User: ' . auth()->user()->name);
+
+        // 自分の会話のみ取得
+        $recentConversations = Conversation::where('user_id', auth()->id())
             ->where('is_favorite', false)
+            ->latest()
             ->limit(10)
             ->get();
 
-        $favoriteConversations = Conversation::where('is_favorite', true)
+        // デバッグ用
+        \Log::info('Recent conversations count: ' . $recentConversations->count());
+
+        $favoriteConversations = Conversation::where('user_id', auth()->id())
+            ->where('is_favorite', true)
             ->latest()
             ->get();
+
+        // デバッグ用
+        \Log::info('Favorite conversations count: ' . $favoriteConversations->count());
 
         $allTags = Tag::all();
 
@@ -501,6 +584,11 @@ class ChatController extends Controller
      */
     public function export(Conversation $conversation, Request $request)
     {
+        // 自分の会話かチェック
+        if ($conversation->user_id !== auth()->id()) {
+            abort(403, 'この会話にアクセスする権限がありません');
+        }
+
         $format = $request->query('format', 'markdown');
         $conversation->load('messages');
 
@@ -614,6 +702,11 @@ class ChatController extends Controller
      */
     public function updateTags(Conversation $conversation, Request $request)
     {
+        // 自分の会話かチェック
+        if ($conversation->user_id !== auth()->id()) {
+            abort(403, 'この会話にアクセスする権限がありません');
+        }
+
         $request->validate([
             'tags' => 'array',
             'tags.*' => 'string|max:50',
@@ -673,145 +766,187 @@ class ChatController extends Controller
      */
     public function search(Request $request)
     {
-        $query = $request->input('q', '');
+        $query = $request->input('q');
 
         if (empty($query)) {
-            $conversations = Conversation::latest()->limit(20)->get();
-        } else {
-            $conversations = Conversation::where('title', 'LIKE', "%{$query}%")
-                ->orWhereHas('messages', function($q) use ($query) {
-                    $q->where('content', 'LIKE', "%{$query}%");
-                })
-                ->latest()
-                ->limit(20)
-                ->get();
+            return response()->json([]);
         }
 
-        return response()->json([
-            'conversations' => $conversations->map(function($conv) use ($query) {
+        // 自分の会話のみ検索
+        $conversations = Conversation::where('user_id', auth()->id())
+            ->where('title', 'like', '%' . $query . '%')
+            ->with('tags')
+            ->latest()
+            ->limit(20)
+            ->get()
+            ->map(function ($conversation) use ($query) {
                 return [
-                    'id' => $conv->id,
-                    'title' => $conv->title,
-                    'mode' => $conv->mode,
-                    'is_favorite' => $conv->is_favorite,
-                    'updated_at' => $conv->updated_at->format('Y-m-d H:i'),
-                    'message_count' => $conv->messages()->count(),
-                    'tags' => $conv->tags->pluck('name'),
-                    'highlight' => !empty($query),
+                    'id' => $conversation->id,
+                    'title' => $conversation->title,
+                    'is_favorite' => $conversation->is_favorite,
+                    'updated_at' => $conversation->updated_at->diffForHumans(),
+                    'tags' => $conversation->tags->pluck('name'),
+                    'highlight' => true,
                 ];
-            })
-        ]);
+            });
+
+        return response()->json($conversations);
     }
+
     /**
      * 今月のトークン使用統計
      */
     public function getMonthlyStats()
     {
-        $startOfMonth = now()->startOfMonth();
+        try {
+            $startOfMonth = now()->startOfMonth();
 
-        $stats = Message::where('created_at', '>=', $startOfMonth)
-            ->whereNotNull('total_tokens')
-            ->selectRaw('
-                SUM(input_tokens) as total_input,
-                SUM(output_tokens) as total_output,
-                SUM(total_tokens) as total_tokens,
-                COUNT(*) as message_count
-            ')
-            ->first();
+            // 自分の会話のメッセージのみ集計
+            $conversationIds = Conversation::where('user_id', auth()->id())
+                ->pluck('id');
 
-        $inputCost = ($stats->total_input ?? 0) / 1_000_000 * 3;
-        $outputCost = ($stats->total_output ?? 0) / 1_000_000 * 15;
-        $totalCost = $inputCost + $outputCost;
+            // 会話がない場合は0を返す
+            if ($conversationIds->isEmpty()) {
+                return [
+                    'input_tokens' => 0,
+                    'output_tokens' => 0,
+                    'total_tokens' => 0,
+                    'message_count' => 0,
+                    'cost_usd' => 0,
+                    'cost_jpy' => 0,
+                ];
+            }
 
-        return [
-            'input_tokens' => $stats->total_input ?? 0,
-            'output_tokens' => $stats->total_output ?? 0,
-            'total_tokens' => $stats->total_tokens ?? 0,
-            'message_count' => $stats->message_count ?? 0,
-            'cost_usd' => $totalCost,
-            'cost_jpy' => $totalCost * 150,
-        ];
+            $stats = Message::whereIn('conversation_id', $conversationIds)
+                ->where('created_at', '>=', $startOfMonth)
+                ->whereNotNull('total_tokens')
+                ->selectRaw('
+                    SUM(input_tokens) as total_input,
+                    SUM(output_tokens) as total_output,
+                    SUM(total_tokens) as total_tokens,
+                    COUNT(*) as message_count
+                ')
+                ->first();
+
+            $inputCost = ($stats->total_input ?? 0) / 1_000_000 * 3;
+            $outputCost = ($stats->total_output ?? 0) / 1_000_000 * 15;
+            $totalCost = $inputCost + $outputCost;
+
+            return [
+                'input_tokens' => $stats->total_input ?? 0,
+                'output_tokens' => $stats->total_output ?? 0,
+                'total_tokens' => $stats->total_tokens ?? 0,
+                'message_count' => $stats->message_count ?? 0,
+                'cost_usd' => $totalCost,
+                'cost_jpy' => $totalCost * 150,
+            ];
+        } catch (\Exception $e) {
+            \Log::error('getMonthlyStats Error: ' . $e->getMessage());
+            return [
+                'input_tokens' => 0,
+                'output_tokens' => 0,
+                'total_tokens' => 0,
+                'message_count' => 0,
+                'cost_usd' => 0,
+                'cost_jpy' => 0,
+            ];
+        }
     }
-/**
+
+    /**
      * 詳細なトークン使用統計（日別、会話別）
      */
     public function getDetailedStats()
     {
-        $startOfMonth = now()->startOfMonth();
+        try {
+            $startOfMonth = now()->startOfMonth();
 
-        // 日別の統計
-        $dailyStats = Message::where('created_at', '>=', $startOfMonth)
-            ->whereNotNull('total_tokens')
-            ->selectRaw('
-                DATE(created_at) as date,
-                SUM(input_tokens) as input_tokens,
-                SUM(output_tokens) as output_tokens,
-                SUM(total_tokens) as total_tokens,
-                COUNT(*) as message_count
-            ')
-            ->groupBy('date')
-            ->orderBy('date', 'asc')
-            ->get()
-            ->map(function($stat) {
-                $inputCost = ($stat->input_tokens ?? 0) / 1_000_000 * 3;
-                $outputCost = ($stat->output_tokens ?? 0) / 1_000_000 * 15;
-                return [
-                    'date' => $stat->date,
-                    'input_tokens' => $stat->input_tokens,
-                    'output_tokens' => $stat->output_tokens,
-                    'total_tokens' => $stat->total_tokens,
-                    'message_count' => $stat->message_count,
-                    'cost_usd' => $inputCost + $outputCost,
-                    'cost_jpy' => ($inputCost + $outputCost) * 150,
-                ];
-            });
+            // 自分の会話IDを取得
+            $conversationIds = Conversation::where('user_id', auth()->id())
+                ->pluck('id');
 
-        // 会話別の統計（トップ10）
-        $conversationStats = Conversation::whereHas('messages', function($query) use ($startOfMonth) {
-                $query->where('created_at', '>=', $startOfMonth)
-                      ->whereNotNull('total_tokens');
-            })
-            ->withCount(['messages' => function($query) use ($startOfMonth) {
-                $query->where('created_at', '>=', $startOfMonth);
-            }])
-            ->get()
-            ->map(function($conv) use ($startOfMonth) {
-                $tokens = $conv->messages()
-                    ->where('created_at', '>=', $startOfMonth)
-                    ->selectRaw('
-                        SUM(input_tokens) as input_tokens,
-                        SUM(output_tokens) as output_tokens,
-                        SUM(total_tokens) as total_tokens
-                    ')
-                    ->first();
+            // 月間サマリー
+            $monthlyStats = $this->getMonthlyStats();
 
-                $inputCost = ($tokens->input_tokens ?? 0) / 1_000_000 * 3;
-                $outputCost = ($tokens->output_tokens ?? 0) / 1_000_000 * 15;
+            // 日別の統計（自分のデータのみ）
+            $dailyStats = \DB::table('messages')
+                ->whereIn('conversation_id', $conversationIds)
+                ->where('created_at', '>=', $startOfMonth)
+                ->whereNotNull('total_tokens')
+                ->select(
+                    \DB::raw('DATE(created_at) as date'),
+                    \DB::raw('SUM(input_tokens) as input_tokens'),
+                    \DB::raw('SUM(output_tokens) as output_tokens'),
+                    \DB::raw('SUM(total_tokens) as total_tokens'),
+                    \DB::raw('COUNT(*) as message_count')
+                )
+                ->groupBy('date')
+                ->orderBy('date', 'asc')
+                ->get()
+                ->map(function($stat) {
+                    $inputCost = ($stat->input_tokens ?? 0) / 1_000_000 * 3;
+                    $outputCost = ($stat->output_tokens ?? 0) / 1_000_000 * 15;
+                    return [
+                        'date' => $stat->date,
+                        'input_tokens' => (int)$stat->input_tokens,
+                        'output_tokens' => (int)$stat->output_tokens,
+                        'total_tokens' => (int)$stat->total_tokens,
+                        'message_count' => (int)$stat->message_count,
+                        'cost_usd' => $inputCost + $outputCost,
+                        'cost_jpy' => ($inputCost + $outputCost) * 150,
+                    ];
+                });
 
-                return [
-                    'id' => $conv->id,
-                    'title' => $conv->title,
-                    'input_tokens' => $tokens->input_tokens ?? 0,
-                    'output_tokens' => $tokens->output_tokens ?? 0,
-                    'total_tokens' => $tokens->total_tokens ?? 0,
-                    'message_count' => $conv->messages_count ?? 0,
-                    'cost_usd' => $inputCost + $outputCost,
-                    'cost_jpy' => ($inputCost + $outputCost) * 150,
-                ];
-            })
-            ->sortByDesc('total_tokens')
-            ->take(10)
-            ->values();
+            // 会話別の統計（自分の会話のみ）
+            $conversationStats = \DB::table('conversations')
+                ->join('messages', 'conversations.id', '=', 'messages.conversation_id')
+                ->where('conversations.user_id', auth()->id())
+                ->where('messages.created_at', '>=', $startOfMonth)
+                ->whereNotNull('messages.total_tokens')
+                ->select(
+                    'conversations.id',
+                    'conversations.title',
+                    \DB::raw('SUM(messages.input_tokens) as input_tokens'),
+                    \DB::raw('SUM(messages.output_tokens) as output_tokens'),
+                    \DB::raw('SUM(messages.total_tokens) as total_tokens'),
+                    \DB::raw('COUNT(messages.id) as message_count')
+                )
+                ->groupBy('conversations.id', 'conversations.title')
+                ->orderByDesc('total_tokens')
+                ->limit(10)
+                ->get()
+                ->map(function($stat) {
+                    $inputCost = ($stat->input_tokens ?? 0) / 1_000_000 * 3;
+                    $outputCost = ($stat->output_tokens ?? 0) / 1_000_000 * 15;
+                    return [
+                        'id' => $stat->id,
+                        'title' => $stat->title ?? '無題の会話',
+                        'input_tokens' => (int)$stat->input_tokens,
+                        'output_tokens' => (int)$stat->output_tokens,
+                        'total_tokens' => (int)$stat->total_tokens,
+                        'message_count' => (int)$stat->message_count,
+                        'cost_usd' => $inputCost + $outputCost,
+                        'cost_jpy' => ($inputCost + $outputCost) * 150,
+                    ];
+                });
 
-        // 月別の統計
-        $monthlyStats = $this->getMonthlyStats();
+            return response()->json([
+                'monthly' => $monthlyStats,
+                'daily' => $dailyStats,
+                'conversations' => $conversationStats,
+            ]);
 
-        return response()->json([
-            'monthly' => $monthlyStats,
-            'daily' => $dailyStats,
-            'conversations' => $conversationStats,
-        ]);
+        } catch (\Exception $e) {
+            \Log::error('Stats Error: ' . $e->getMessage());
+            return response()->json([
+                'error' => $e->getMessage(),
+                'monthly' => $this->getMonthlyStats(),
+                'daily' => [],
+                'conversations' => [],
+            ], 500);
+        }
     }
+
     /**
      * モード別のシステムプロンプトを返す
      */

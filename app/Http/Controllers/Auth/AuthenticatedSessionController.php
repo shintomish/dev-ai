@@ -28,7 +28,9 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        // return redirect()->intended(RouteServiceProvider::HOME);  // 元のコード
+        return redirect()->intended(route('chat.index'));  // チャット画面にリダイレクト
+
     }
 
     /**

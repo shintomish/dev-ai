@@ -874,6 +874,15 @@ aside {
     </style>
 </head>
 <body>
+
+    <!-- 緊急用: モーダル強制クローズボタン -->
+    <div style="position: fixed; top: 10px; right: 10px; z-index: 9999;">
+        <button onclick="forceCloseAllModals()"
+                style="background: red; color: white; padding: 10px; border-radius: 5px; font-weight: bold; cursor: pointer; border: none;">
+            <!-- 🚨 画面復旧 -->
+        </button>
+    </div>
+
     <div class="flex h-screen">
         <!-- サイドバー -->
         <aside class="w-80 bg-white border-r border-gray-200 flex flex-col" style="background: var(--bg-primary); border-color: var(--border-color);">
@@ -1076,6 +1085,24 @@ aside {
                             🌙
                         </button>
 
+                        <!-- ユーザー情報とログアウト -->
+                        @auth
+                        <div class="flex items-center gap-2 ml-4 pl-4 border-l" style="border-color: var(--border-color);">
+                            <span class="text-sm" style="color: var(--text-primary);">
+                                👤 {{ auth()->user()->name }}
+                                <span class="text-xs" style="color: var(--text-secondary);">(ID: {{ auth()->id() }})</span>
+                            </span>
+                            <form method="POST" action="{{ route('logout') }}" class="inline">
+                                @csrf
+                                <button type="submit"
+                                        class="px-3 py-1 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                                        style="background: var(--bg-primary); color: var(--text-primary); border-color: var(--border-color);">
+                                    ログアウト
+                                </button>
+                            </form>
+                        </div>
+                        @endauth
+
                         @if($conversation)
                             <!-- お気に入りトグル -->
                             <button onclick="toggleFavoriteHeader({{ $conversation->id }})"
@@ -1241,6 +1268,38 @@ aside {
     </div>
 
     <script>
+        // ========== 緊急用: すべてのモーダルを強制的に閉じる ==========
+        function forceCloseAllModals() {
+            console.log('モーダルを強制クローズ中...');
+
+            // すべてのモーダルを閉じる
+            const modals = ['statsModal', 'tagMenu', 'exportMenu'];
+            modals.forEach(modalId => {
+                const modal = document.getElementById(modalId);
+                if (modal) {
+                    modal.classList.add('hidden');
+                    console.log('✓ ' + modalId + ' を閉じました');
+                }
+            });
+
+            // 固定オーバーレイを削除
+            document.querySelectorAll('.fixed.inset-0').forEach(el => {
+                if (el.classList.contains('bg-black') || el.classList.contains('bg-opacity-50')) {
+                    el.classList.add('hidden');
+                    console.log('✓ オーバーレイを削除しました');
+                }
+            });
+
+            // グラフを破棄
+            if (typeof tokenChart !== 'undefined' && tokenChart) {
+                tokenChart.destroy();
+                tokenChart = null;
+                console.log('✓ グラフを破棄しました');
+            }
+
+            alert('画面を復旧しました！');
+        }
+
         // ========== ダークモード機能 ==========
         (function() {
             // ページ読み込み時に保存された設定を適用

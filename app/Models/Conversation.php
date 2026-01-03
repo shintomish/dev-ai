@@ -2,42 +2,38 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Conversation extends Model
 {
-    protected $fillable = ['title', 'mode', 'is_favorite'];
+    use HasFactory;
 
-    public function tags(): BelongsToMany
+    protected $fillable = [
+        'user_id',      // ← これがあるか確認！
+        'title',
+        'mode',
+        'is_favorite',
+    ];
+
+    protected $casts = [
+        'is_favorite' => 'boolean',
+    ];
+
+    // ユーザーとのリレーション
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function messages()
+    {
+        return $this->hasMany(Message::class);
+    }
+
+    public function tags()
     {
         return $this->belongsToMany(Tag::class);
-    }
-
-    public function messages(): HasMany
-    {
-        return $this->hasMany(Message::class)->orderBy('created_at');
-    }
-
-    public function generateTitle(): void
-    {
-        if ($this->title) return;
-
-        $firstMessage = $this->messages()->where('role', 'user')->first();
-        if ($firstMessage) {
-            // 改行、タブ、複数の空白を1つの空白に置換
-            $content = preg_replace('/\s+/', ' ', $firstMessage->content);
-            $content = trim($content);
-
-            // 最初の50文字を取得
-            $title = mb_substr($content, 0, 50);
-            if (mb_strlen($content) > 50) {
-                $title .= '...';
-            }
-
-            $this->update(['title' => $title]);
-        }
     }
 
     /**
@@ -83,4 +79,15 @@ class Conversation extends Model
         return $this->cost * 155;
     }
 
+    /**
+     * タイトル自動生成
+     */
+    public function generateTitle()
+    {
+        if ($this->title === '新しい会話' && $this->messages()->count() > 0) {
+            $firstMessage = $this->messages()->first();
+            $this->title = mb_substr($firstMessage->content, 0, 50);
+            $this->save();
+        }
+    }
 }
