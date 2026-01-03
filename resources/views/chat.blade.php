@@ -335,7 +335,7 @@
         }
 
         /* ===== サイドバー ===== */
-aside {
+        aside {
             flex-shrink: 0;
             flex-grow: 0;
             min-width: 16rem;
@@ -449,7 +449,7 @@ aside {
         }
 
         /* チャットメッセージ表示エリア */
-#chatMessages {
+        #chatMessages {
             flex: 1;
             overflow-y: auto;
             overflow-x: hidden !important;
@@ -891,7 +891,7 @@ aside {
                 <div class="relative">
                     <input
                         type="text"
-                        id="searchInput"
+                        id="searchBox"
                         placeholder="会話を検索..."
                         class="w-full px-4 py-2 pl-10 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         style="background: var(--input-bg); color: var(--text-primary); border-color: var(--border-color);"
@@ -917,49 +917,49 @@ aside {
             </div>
 
             <!-- トークン使用量統計 -->
-                @if(isset($monthlyStats))
-                <div class="p-4 border-b border-gray-200 cursor-pointer hover:bg-opacity-80 transition"
-                    style="border-color: var(--border-color); background: var(--bg-tertiary);"
-                    onclick="openStatsModal()">
-                    <div class="flex items-center justify-between mb-2">
-                        <div class="text-xs font-semibold uppercase" style="color: var(--text-secondary);">
-                            📊 今月の使用量
-                        </div>
-                        <svg class="w-4 h-4" style="color: var(--text-secondary);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                        </svg>
+            @if(isset($monthlyStats))
+            <div class="p-4 border-b border-gray-200 cursor-pointer hover:bg-opacity-80 transition"
+                style="border-color: var(--border-color); background: var(--bg-tertiary);"
+                onclick="openStatsModal()">
+                <div class="flex items-center justify-between mb-2">
+                    <div class="text-xs font-semibold uppercase" style="color: var(--text-secondary);">
+                        📊 今月の使用量
                     </div>
-                    <div class="space-y-1 text-sm" style="color: var(--text-primary);">
-                        <div class="flex justify-between">
-                            <span>トークン:</span>
-                            <span class="font-mono">{{ number_format($monthlyStats['total_tokens'], 0, '.', ',') }}</span>
-                        </div>
-                        <div class="flex justify-between text-xs" style="color: var(--text-secondary);">
-                            <span>入力:</span>
-                            <span class="font-mono">{{ number_format($monthlyStats['input_tokens'], 0, '.', ',') }}</span>
-                        </div>
-                        <div class="flex justify-between text-xs" style="color: var(--text-secondary);">
-                            <span>出力:</span>
-                            <span class="font-mono">{{ number_format($monthlyStats['output_tokens'], 0, '.', ',') }}</span>
-                        </div>
-                        <div class="flex justify-between pt-1 border-t" style="border-color: var(--border-color);">
-                            <span>コスト:</span>
-                            <span class="font-mono font-semibold">¥{{ number_format($monthlyStats['cost_jpy'], 2, '.', ',') }}</span>
-                        </div>
-                        <div class="flex justify-between text-xs" style="color: var(--text-secondary);">
-                            <span>メッセージ数:</span>
-                            <span class="font-mono">{{ number_format($monthlyStats['message_count'], 0, '.', ',') }}</span>
-                        </div>
+                    <svg class="w-4 h-4" style="color: var(--text-secondary);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                </div>
+                <div class="space-y-1 text-sm" style="color: var(--text-primary);">
+                    <div class="flex justify-between">
+                        <span>トークン:</span>
+                        <span class="font-mono">{{ number_format($monthlyStats['total_tokens'], 0, '.', ',') }}</span>
+                    </div>
+                    <div class="flex justify-between text-xs" style="color: var(--text-secondary);">
+                        <span>入力:</span>
+                        <span class="font-mono">{{ number_format($monthlyStats['input_tokens'], 0, '.', ',') }}</span>
+                    </div>
+                    <div class="flex justify-between text-xs" style="color: var(--text-secondary);">
+                        <span>出力:</span>
+                        <span class="font-mono">{{ number_format($monthlyStats['output_tokens'], 0, '.', ',') }}</span>
+                    </div>
+                    <div class="flex justify-between pt-1 border-t" style="border-color: var(--border-color);">
+                        <span>コスト:</span>
+                        <span class="font-mono font-semibold">¥{{ number_format($monthlyStats['cost_jpy'], 2, '.', ',') }}</span>
+                    </div>
+                    <div class="flex justify-between text-xs" style="color: var(--text-secondary);">
+                        <span>メッセージ数:</span>
+                        <span class="font-mono">{{ number_format($monthlyStats['message_count'], 0, '.', ',') }}</span>
                     </div>
                 </div>
-                @endif
+            </div>
+            @endif
             <!-- 新しい会話ボタン -->
-                <div class="p-4 border-b border-gray-200" style="border-color: var(--border-color);">
-                    <a href="{{ route('chat.new') }}" class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
-                        <span>➕</span>
-                        <span>新しい会話</span>
-                    </a>
-                </div>
+            <div class="p-4 border-b border-gray-200" style="border-color: var(--border-color);">
+                <a href="{{ route('chat.new') }}" class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
+                    <span>➕</span>
+                    <span>新しい会話</span>
+                </a>
+            </div>
 
             <!-- タブボタン -->
             <div class="flex border-b border-gray-200" style="border-color: var(--border-color);">
@@ -975,7 +975,7 @@ aside {
             <div class="flex-1 overflow-y-auto">
                 <!-- 最近の会話タブ -->
                 <div id="recent" class="tab-content active p-4">
-                    <div id="conversationList1" class="space-y-2">
+                    <div id="recentConversationList" class="space-y-2">
                         @forelse($recentConversations as $conv)
                             <div class="flex items-center gap-2">
                                 <button onclick="toggleFavorite({{ $conv->id }}, event)"
@@ -1062,13 +1062,15 @@ aside {
         <!-- メインチャットエリア -->
         <main>
             <!-- ヘッダー -->
+            <!-- ヘッダー -->
             <div class="border-b border-gray-200 bg-white p-4" style="background: var(--bg-primary); border-color: var(--border-color);">
                 <div class="flex items-center justify-between">
-                    <div class="flex-1">
+                    <!-- 左側：タイトル -->
+                    <div class="flex-1 min-w-0">
                         <h1 class="text-xl font-bold text-gray-900" style="color: var(--text-primary);">
                             {{ $conversation ? $conversation->title : '新しい会話' }}
                         </h1>
-                        @if($conversation && $conversation->total_tokens > 0)
+                        @if($conversation && isset($conversation->total_tokens) && $conversation->total_tokens > 0)
                             <div class="text-xs mt-1" style="color: var(--text-secondary);">
                                 📊 {{ number_format($conversation->total_tokens) }} tokens
                                 (入力: {{ number_format($conversation->input_tokens) }} / 出力: {{ number_format($conversation->output_tokens) }})
@@ -1076,97 +1078,82 @@ aside {
                             </div>
                         @endif
                     </div>
-                    <div class="flex items-center gap-2">
-                        <!-- ダークモード切り替えボタン -->
-                        <button onclick="toggleDarkMode()"
-                                id="darkModeToggle"
-                                class="px-3 py-1 text-xl hover:scale-110 transition-transform"
-                                title="ダークモード切り替え">
-                            🌙
-                        </button>
 
-                        <!-- ユーザー情報とログアウト -->
-                        @auth
-                        <div class="flex items-center gap-2 ml-4 pl-4 border-l" style="border-color: var(--border-color);">
-                            <span class="text-sm" style="color: var(--text-primary);">
-                                👤 {{ auth()->user()->name }}
-                                <span class="text-xs" style="color: var(--text-secondary);">(ID: {{ auth()->id() }})</span>
-                            </span>
-                            <form method="POST" action="{{ route('logout') }}" class="inline">
-                                @csrf
-                                <button type="submit"
-                                        class="px-3 py-1 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
-                                        style="background: var(--bg-primary); color: var(--text-primary); border-color: var(--border-color);">
-                                    ログアウト
-                                </button>
-                            </form>
-                        </div>
-                        @endauth
-
+                    <!-- 右側：アクションボタン -->
+                    <div class="flex items-center gap-3 ml-4">
+                        <!-- 会話操作グループ（会話がある場合のみ） -->
                         @if($conversation)
-                            <!-- お気に入りトグル -->
+                        <div class="flex items-center gap-2 pr-3 border-r" style="border-color: var(--border-color);">
+                            <!-- お気に入り -->
                             <button onclick="toggleFavoriteHeader({{ $conversation->id }})"
-                                    class="px-3 py-1 text-xl hover:scale-110 transition-transform"
+                                    class="p-2 hover:bg-gray-100 rounded-lg transition"
+                                    style="background: var(--bg-secondary);"
                                     title="{{ $conversation->is_favorite ? 'お気に入り解除' : 'お気に入りに追加' }}">
-                                {{ $conversation->is_favorite ? '⭐' : '☆' }}
+                                <span class="text-xl">{{ $conversation->is_favorite ? '⭐' : '☆' }}</span>
                             </button>
 
-                            <!-- タグ管理 -->
-                            <div class="relative">
-                                <button onclick="toggleTagMenu()" class="px-3 py-1 text-sm border border-gray-300 rounded-lg hover:bg-gray-50" style="background: var(--bg-primary); color: var(--text-primary); border-color: var(--border-color);">
-                                    🏷️ タグ
-                                </button>
-                                <div id="tagMenu" class="hidden absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50" style="background: var(--bg-primary); border-color: var(--border-color);">
-                                    <div class="p-3">
-                                        <input type="text" id="newTagInput" placeholder="新しいタグ..." class="w-full px-3 py-1 text-sm border border-gray-300 rounded mb-2" style="background: var(--input-bg); color: var(--text-primary); border-color: var(--border-color);">
-                                        <button onclick="addNewTag()" class="w-full px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">追加</button>
-                                    </div>
-                                    <div class="p-2 max-h-60 overflow-y-auto border-t" style="border-color: var(--border-color);">
-                                        @foreach($allTags as $tag)
-                                            <label class="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer" style="color: var(--text-primary);">
-                                                <input type="checkbox"
-                                                    value="{{ $tag->id }}"
-                                                    {{ $conversation->tags->contains($tag->id) ? 'checked' : '' }}
-                                                    onchange="handleTagChange({{ $conversation->id }}, {{ $tag->id }}, this.checked)"
-                                                    class="rounded">
-                                                <span class="text-sm">{{ $tag->name }}</span>
-                                            </label>
-                                        @endforeach
-                                    </div>
-                                </div>
-                            </div>
+                            <!-- タグ -->
+                            <button onclick="toggleTagMenu()"
+                                    class="p-2 hover:bg-gray-100 rounded-lg transition flex items-center gap-1"
+                                    style="background: var(--bg-secondary); color: var(--text-primary);"
+                                    title="タグ">
+                                <span class="text-lg">🏷️</span>
+                                <span class="text-sm">タグ</span>
+                            </button>
 
                             <!-- エクスポート -->
-                            <div class="relative">
-                                <button onclick="toggleExportMenu()" class="px-3 py-1 text-sm border border-gray-300 rounded-lg hover:bg-gray-50" style="background: var(--bg-primary); color: var(--text-primary); border-color: var(--border-color);">
-                                    📥 エクスポート
-                                </button>
-                                <div id="exportMenu" class="hidden absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-50" style="background: var(--bg-primary); border-color: var(--border-color);">
-                                    <a href="{{ route('conversations.export', ['conversation' => $conversation->id, 'format' => 'markdown']) }}"
-                                    class="block px-4 py-2 text-sm hover:bg-gray-50 rounded-t-lg" style="color: var(--text-primary);">
-                                        📝 Markdown
-                                    </a>
-                                    <a href="{{ route('conversations.export', ['conversation' => $conversation->id, 'format' => 'json']) }}"
-                                    class="block px-4 py-2 text-sm hover:bg-gray-50" style="color: var(--text-primary);">
-                                        📊 JSON
-                                    </a>
-                                    <a href="{{ route('conversations.export', ['conversation' => $conversation->id, 'format' => 'txt']) }}"
-                                    class="block px-4 py-2 text-sm hover:bg-gray-50 rounded-b-lg" style="color: var(--text-primary);">
-                                        📄 テキスト
-                                    </a>
-                                </div>
-                            </div>
-
-                            <!-- 削除ボタン -->
-                            <button onclick="deleteConversationHeader({{ $conversation->id }})"
-                                    class="px-3 py-1 text-sm border border-red-300 text-red-600 rounded-lg hover:bg-red-50 hover:border-red-400"
-                                    title="この会話を削除">
-                                🗑️ 削除
+                            <button onclick="toggleExportMenu()"
+                                    class="p-2 hover:bg-gray-100 rounded-lg transition flex items-center gap-1"
+                                    style="background: var(--bg-secondary); color: var(--text-primary);"
+                                    title="エクスポート">
+                                <span class="text-lg">📥</span>
+                                <span class="text-sm">エクスポート</span>
                             </button>
+
+                            <!-- 削除 -->
+                            <button onclick="deleteConversationHeader({{ $conversation->id }})"
+                                    class="p-2 hover:bg-red-100 rounded-lg transition"
+                                    style="background: var(--bg-secondary); color: var(--text-primary);"
+                                    title="削除">
+                                <span class="text-lg">🗑️</span>
+                            </button>
+                        </div>
                         @endif
+
+                        <!-- システム設定グループ -->
+                        <div class="flex items-center gap-2">
+                            <!-- ダークモード -->
+                            <button onclick="toggleDarkMode()"
+                                    id="darkModeToggle"
+                                    class="p-2 hover:bg-gray-100 rounded-lg transition text-2xl"
+                                    style="background: var(--bg-secondary);"
+                                    title="ダークモード切り替え">
+                                🌙
+                            </button>
+
+                            <!-- ユーザー情報 -->
+                            @auth
+                            <div class="flex items-center gap-2 pl-3 border-l" style="border-color: var(--border-color);">
+                                <span class="text-sm flex items-center gap-1" style="color: var(--text-primary);">
+                                    <span class="text-lg">👤</span>
+                                    <span>{{ auth()->user()->name }}</span>
+                                    <span class="text-xs" style="color: var(--text-secondary);">(ID: {{ auth()->id() }})</span>
+                                </span>
+                                <form method="POST" action="{{ route('logout') }}" class="inline">
+                                    @csrf
+                                    <button type="submit"
+                                            class="px-3 py-1.5 text-sm border rounded-lg hover:bg-gray-50 transition"
+                                            style="background: var(--bg-primary); color: var(--text-primary); border-color: var(--border-color);">
+                                        ログアウト
+                                    </button>
+                                </form>
+                            </div>
+                            @endauth
+                        </div>
                     </div>
                 </div>
             </div>
+            
             <!-- チャットメッセージ -->
             <div id="chatMessages">
                 @foreach($messages as $message)
@@ -1301,12 +1288,6 @@ aside {
         }
 
         // ========== ダークモード機能 ==========
-        (function() {
-            // ページ読み込み時に保存された設定を適用
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            applyTheme(savedTheme);
-        })();
-
         function toggleDarkMode() {
             const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
             const newTheme = currentTheme === 'light' ? 'dark' : 'light';
@@ -1314,55 +1295,6 @@ aside {
             localStorage.setItem('theme', newTheme);
         }
 
-        function applyTheme(theme) {
-            document.documentElement.setAttribute('data-theme', theme);
-
-            // ボタンのアイコンを変更
-            const toggleButton = document.getElementById('darkModeToggle');
-            if (toggleButton) {
-                toggleButton.textContent = theme === 'dark' ? '☀️' : '🌙';
-                toggleButton.title = theme === 'dark' ? 'ライトモード' : 'ダークモード';
-            }
-
-            console.log('テーマ変更:', theme);
-        }
-
-        // ========== タブ切り替え機能 ==========
-        document.addEventListener('DOMContentLoaded', function() {
-            const tabButtons = document.querySelectorAll('.tab-button');
-            const tabContents = document.querySelectorAll('.tab-content');
-
-            tabButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    const tabName = button.dataset.tab;
-
-                    // すべてのタブボタンとコンテンツから active を削除
-                    tabButtons.forEach(btn => btn.classList.remove('active'));
-                    tabContents.forEach(content => content.classList.remove('active'));
-
-                    // クリックされたタブを active に
-                    button.classList.add('active');
-                    document.getElementById(tabName).classList.add('active');
-                });
-            });
-        });
-
-        // ========== ダークモード機能 ==========
-        document.addEventListener('DOMContentLoaded', function() {
-            // ローカルストレージから設定を読み込み
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            applyTheme(savedTheme);
-        });
-
-        function toggleDarkMode() {
-            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
-            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-            applyTheme(newTheme);
-            localStorage.setItem('theme', newTheme);
-        }
-
-        // ダークモード切り替え時のMermaidテーマ変更
-        // ダークモード切り替え時にグラフを再描画
         function applyTheme(theme) {
             document.documentElement.setAttribute('data-theme', theme);
 
@@ -1387,17 +1319,6 @@ aside {
                 mermaid.init(undefined, element);
             });
 
-            // グラフが表示中なら再描画
-            if (tokenChart) {
-                const modal = document.getElementById('statsModal');
-                if (!modal.classList.contains('hidden')) {
-                    // 現在のデータを保持して再描画
-                    const currentData = tokenChart.data;
-                    tokenChart.destroy();
-                    // 再描画は次回openStatsModalで行う
-                }
-            }
-
             console.log('テーマ変更:', theme);
         }
 
@@ -1412,187 +1333,197 @@ aside {
         const fileInput = document.getElementById('fileInput');
 
         // ========== 検索機能 ==========
-        const searchInput = document.getElementById('searchInput');
-        const clearSearch = document.getElementById('clearSearch');
-        const searchResults = document.getElementById('searchResults');
-        const resultCount = document.getElementById('resultCount');
         let searchTimeout;
+        const searchBox = document.getElementById('searchBox') || document.getElementById('searchInput');  // 両方試す
+
+        if (searchBox) {
+            console.log('検索ボックス初期化 - ID:', searchBox.id);
+
+            searchBox.addEventListener('input', function(e) {
+                const query = e.target.value;
+                console.log('検索入力イベント:', query);
+
+                // 既存のタイムアウトをクリア
+                clearTimeout(searchTimeout);
+
+                // 300ms後に検索実行（デバウンス）
+                searchTimeout = setTimeout(function() {
+                    console.log('タイムアウト実行 - query:', query);
+
+                    if (query.trim().length === 0) {
+                        console.log('空なのでリロード');
+                        location.reload();
+                    } else if (query.trim().length >= 1) {
+                        console.log('検索実行:', query.trim());
+                        performSearch(query.trim());
+                    }
+                }, 300);
+            });
+
+            // Enterキーでも検索
+            searchBox.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    clearTimeout(searchTimeout);
+                    const query = e.target.value.trim();
+                    console.log('Enterキー押下:', query);
+                    if (query.length >= 1) {
+                        performSearch(query);
+                    }
+                }
+            });
+        } else {
+            console.error('検索ボックス(#searchBox)が見つかりません');
+        }
 
         // 検索実行
         async function performSearch(query) {
-            console.log('検索実行:', query);
+            console.log('performSearch 呼び出し:', query);
+
+            if (!query || query.trim() === '') {
+                console.log('クエリが空');
+                return;
+            }
 
             try {
                 const url = `/conversations/search?q=${encodeURIComponent(query)}`;
+                console.log('検索URL:', url);
+
                 const response = await fetch(url);
-                const data = await response.json();
 
-                console.log('検索結果:', data);
-
-                // 検索結果を表示
-                displaySearchResults(data.conversations, query);
-
-                // 結果数を表示
-                if (query) {
-                    resultCount.textContent = data.conversations.length;
-                    searchResults.classList.remove('hidden');
-                } else {
-                    searchResults.classList.add('hidden');
+                if (!response.ok) {
+                    throw new Error(`検索リクエストが失敗しました (${response.status})`);
                 }
+
+                const conversations = await response.json();
+                console.log('検索結果:', conversations);
+
+                displaySearchResults(conversations, query);
             } catch (error) {
                 console.error('検索エラー:', error);
+                alert('検索に失敗しました: ' + error.message);
             }
         }
 
         // 検索結果を表示
         function displaySearchResults(conversations, query) {
+            console.log('displaySearchResults 呼び出し');
+            console.log('  query:', query);
+            console.log('  conversations:', conversations);
+
             const conversationList = document.getElementById('recentConversationList');
-            const favoritesList = document.getElementById('favoritesList');
+            const favoritesList = document.getElementById('favoriteConversationList');
 
             if (!conversationList) {
-                console.error('recentConversationList  が見つかりません');
+                console.error('recentConversationList が見つかりません');
                 return;
             }
 
-            // 検索中でない場合は何もしない（ページリロードで元に戻す）
-            if (!query) {
-                location.reload();
-                return;
+            // conversationsが配列でない場合の対策
+            if (!Array.isArray(conversations)) {
+                console.error('conversations が配列ではありません:', typeof conversations);
+                conversations = [];
             }
+
+            console.log('検索結果を表示 - 件数:', conversations.length);
 
             // 検索結果を お気に入り と 最近 に分ける
             const favoriteResults = conversations.filter(conv => conv.is_favorite);
             const recentResults = conversations.filter(conv => !conv.is_favorite);
 
-            // 結果が0件の場合
-            if (conversations.length === 0) {
-                conversationList.innerHTML = `
-                    <div class="p-8 text-center text-gray-500">
-                        <svg class="w-16 h-16 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        <p class="font-medium">会話が見つかりませんでした</p>
-                        <p class="text-sm mt-1">別のキーワードで検索してみてください</p>
-                    </div>
-                `;
-                if (favoritesList) {
-                    favoritesList.innerHTML = `
-                        <div class="p-4 text-center text-gray-500">
-                            <p class="text-sm">検索結果なし</p>
-                        </div>
-                    `;
-                }
-                return;
+            console.log('お気に入り:', favoriteResults.length, '件');
+            console.log('最近:', recentResults.length, '件');
+
+            // テキストをハイライト
+            function highlightText(text, query) {
+                if (!query || !text) return text;
+                const regex = new RegExp(`(${query})`, 'gi');
+                return text.replace(regex, '<mark style="background: yellow; color: black;">$1</mark>');
             }
 
             // 最近の会話リストを更新
-            conversationList.innerHTML = renderConversationItems(recentResults, query);
+            if (recentResults.length === 0) {
+                conversationList.innerHTML = '<div class="p-4 text-center" style="color: var(--text-secondary);">検索結果がありません</div>';
+            } else {
+                conversationList.innerHTML = recentResults.map(conversation => `
+                    <a href="/chat?conversation=${conversation.id}"
+                       class="block p-3 rounded-lg hover:bg-gray-100 transition"
+                       style="background: var(--bg-primary);">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2">
+                                    ${conversation.is_favorite ? '<span class="text-yellow-500">⭐</span>' : '<span class="text-gray-400">☆</span>'}
+                                    <span class="text-sm font-medium truncate" style="color: var(--text-primary);">${highlightText(conversation.title, query)}</span>
+                                </div>
+                                <div class="text-xs mt-1" style="color: var(--text-secondary);">
+                                    ${conversation.updated_at}
+                                </div>
+                                ${conversation.tags && conversation.tags.length > 0 ? `
+                                    <div class="flex gap-1 mt-1 flex-wrap">
+                                        ${conversation.tags.map(tag => `<span class="text-xs px-2 py-0.5 rounded" style="background: var(--bg-tertiary); color: var(--text-secondary);">${tag}</span>`).join('')}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </a>
+                `).join('');
+            }
 
             // お気に入りリストを更新
             if (favoritesList) {
-                if (favoriteResults.length > 0) {
-                    favoritesList.innerHTML = renderConversationItems(favoriteResults, query);
+                if (favoriteResults.length === 0) {
+                    favoritesList.innerHTML = '<div class="p-4 text-center" style="color: var(--text-secondary);">検索結果がありません</div>';
                 } else {
-                    favoritesList.innerHTML = `
-                        <div class="p-4 text-center text-gray-500">
-                            <p class="text-sm">検索結果なし</p>
-                        </div>
-                    `;
+                    favoritesList.innerHTML = favoriteResults.map(conversation => `
+                        <a href="/chat?conversation=${conversation.id}"
+                           class="block p-3 rounded-lg hover:bg-gray-100 transition"
+                           style="background: var(--bg-primary);">
+                            <div class="flex items-start justify-between">
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-yellow-500">⭐</span>
+                                        <span class="text-sm font-medium truncate" style="color: var(--text-primary);">${highlightText(conversation.title, query)}</span>
+                                    </div>
+                                    <div class="text-xs mt-1" style="color: var(--text-secondary);">
+                                        ${conversation.updated_at}
+                                    </div>
+                                    ${conversation.tags && conversation.tags.length > 0 ? `
+                                        <div class="flex gap-1 mt-1 flex-wrap">
+                                            ${conversation.tags.map(tag => `<span class="text-xs px-2 py-0.5 rounded" style="background: var(--bg-tertiary); color: var(--text-secondary);">${tag}</span>`).join('')}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </a>
+                    `).join('');
                 }
             }
         }
 
-        // 会話アイテムのHTMLを生成
-        function renderConversationItems(conversations, query) {
-            if (conversations.length === 0) {
-                return `
-                    <div class="p-4 text-center text-gray-500">
-                        <p class="text-sm">検索結果なし</p>
-                    </div>
-                `;
-            }
+        // ========== ページ読み込み時の処理 ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            // ローカルストレージから設定を読み込み
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            applyTheme(savedTheme);
 
-            let html = '';
-            conversations.forEach(conv => {
-                let title = conv.title;
-                if (query && conv.highlight) {
-                    const regex = new RegExp(`(${escapeRegex(query)})`, 'gi');
-                    title = title.replace(regex, '<mark class="bg-yellow-200 px-1 rounded">$1</mark>');
-                }
+            // タブ切り替え機能
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
 
-                const tagsHtml = conv.tags.length > 0
-                    ? `<div class="flex flex-wrap gap-1 mt-2">
-                        ${conv.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
-                    </div>`
-                    : '';
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const tabName = button.dataset.tab;
 
-                html += `
-                    <div class="flex items-center gap-2">
-                        <button onclick="toggleFavorite(${conv.id}, event)"
-                                class="flex-shrink-0 text-xl hover:scale-110 transition-transform"
-                                title="${conv.is_favorite ? 'お気に入り解除' : 'お気に入りに追加'}">
-                            ${conv.is_favorite ? '⭐' : '☆'}
-                        </button>
-                        <a href="/chat?conversation=${conv.id}"
-                        class="flex-1 block p-3 rounded-lg hover:bg-gray-100 bg-white border border-gray-200">
-                            <div class="text-sm font-medium text-gray-900 truncate">${title}</div>
-                            <div class="text-xs text-gray-500 mt-1">${conv.updated_at}</div>
-                            ${tagsHtml}
-                        </a>
-                        <button onclick="deleteConversation(${conv.id})"
-                                class="flex-shrink-0 text-red-500 hover:text-red-700 p-1"
-                                title="削除">
-                            🗑️
-                        </button>
-                    </div>
-                `;
+                    // すべてのタブボタンとコンテンツから active を削除
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    tabContents.forEach(content => content.classList.remove('active'));
+
+                    // クリックされたタブを active に
+                    button.classList.add('active');
+                    document.getElementById(tabName).classList.add('active');
+                });
             });
 
-            return html;
-        }
-
-        // 正規表現のエスケープ
-        function escapeRegex(string) {
-            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        }
-
-        // 入力時の検索
-        searchInput.addEventListener('input', (e) => {
-            const query = e.target.value.trim();
-
-            if (query) {
-                clearSearch.classList.remove('hidden');
-            } else {
-                clearSearch.classList.add('hidden');
-            }
-
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                performSearch(query);
-            }, 300);
-        });
-
-        // Enterキーで検索
-        searchInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                clearTimeout(searchTimeout);
-                performSearch(e.target.value.trim());
-            }
-        });
-
-        // クリアボタン
-        clearSearch.addEventListener('click', () => {
-            searchInput.value = '';
-            clearSearch.classList.add('hidden');
-            searchResults.classList.add('hidden');
-            performSearch('');
-        });
-
-        // ========== 以下、既存のJavaScript（省略せず全て含める） ==========
-
-        // ページ読み込み時の処理
-        document.addEventListener('DOMContentLoaded', function() {
             // Mermaidの初期化
             mermaid.initialize({
                 startOnLoad: false,
@@ -1602,7 +1533,7 @@ aside {
             // 既存メッセージのフォーマット
             document.querySelectorAll('.message-content').forEach(element => {
                 if (!element.classList.contains('formatted')) {
-                    element.classList.add('markdown-content');  // マークダウンクラス追加
+                    element.classList.add('markdown-content');
                     const formattedContent = formatResponse(element.textContent);
                     element.innerHTML = formattedContent;
                     element.classList.add('formatted');

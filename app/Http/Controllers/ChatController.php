@@ -766,9 +766,15 @@ class ChatController extends Controller
      */
     public function search(Request $request)
     {
+        \Log::info('Search START');
+        \Log::info('User ID: ' . auth()->id());
+
         $query = $request->input('q');
 
+        \Log::info('Search query: ' . $query);
+
         if (empty($query)) {
+            \Log::info('Query is empty, returning empty array');
             return response()->json([]);
         }
 
@@ -789,6 +795,8 @@ class ChatController extends Controller
                     'highlight' => true,
                 ];
             });
+
+        \Log::info('Search results count: ' . $conversations->count());
 
         return response()->json($conversations);
     }
