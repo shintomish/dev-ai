@@ -876,12 +876,12 @@
 <body>
 
     <!-- 緊急用: モーダル強制クローズボタン -->
-    <div style="position: fixed; top: 10px; right: 10px; z-index: 9999;">
+    <!-- <div style="position: fixed; top: 10px; right: 10px; z-index: 9999;">
         <button onclick="forceCloseAllModals()"
                 style="background: red; color: white; padding: 10px; border-radius: 5px; font-weight: bold; cursor: pointer; border: none;">
-            <!-- 🚨 画面復旧 -->
+            🚨 画面復旧
         </button>
-    </div>
+    </div> -->
 
     <div class="flex h-screen">
         <!-- サイドバー -->
@@ -1153,7 +1153,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- チャットメッセージ -->
             <div id="chatMessages">
                 @foreach($messages as $message)
