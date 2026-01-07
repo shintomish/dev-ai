@@ -618,7 +618,7 @@ public function export(Conversation $conversation, Request $request)
                     }),
                 ];
                 
-                // JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT で日本語を読みやすく
+                // JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT で日本語を読みやすく 
                 $jsonContent = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
                 
                 return response($jsonContent)
