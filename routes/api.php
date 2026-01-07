@@ -33,6 +33,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // メッセージ関連
     Route::get('/conversations/{conversation}/messages', [MessageController::class, 'index']);
     Route::post('/conversations/{conversation}/messages', [MessageController::class, 'store']);
+    Route::post('/conversations/{conversation}/messages/stream', [MessageController::class, 'stream']); 
 
     // 統計関連
     Route::get('/stats/monthly', [ConversationController::class, 'monthlyStats']);
