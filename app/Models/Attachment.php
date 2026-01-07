@@ -16,6 +16,7 @@ class Attachment extends Model
         'mime_type',
         'size',
         'content',
+        'filepath',
         'is_image',  // 追加
     ];
 

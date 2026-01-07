@@ -342,4 +342,206 @@ class MessageController extends Controller
             'X-Accel-Buffering' => 'no',
         ]);
     }
+
+    /**
+     * ファイル付きメッセージ送信
+     */
+    public function uploadWithFile(Request $request, Conversation $conversation)
+    {
+        // 自分の会話かチェック
+        if ($conversation->user_id !== $request->user()->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'この会話にアクセスする権限がありません',
+            ], 403);
+        }
+
+        $request->validate([
+            'message' => 'required|string|max:10000',
+            'file' => 'required|file|max:10240', // 10MB
+        ]);
+
+        $messageText = $request->input('message');
+        $file = $request->file('file');
+
+        // ファイル情報を取得
+        $originalName = $file->getClientOriginalName();
+        $extension = $file->getClientOriginalExtension();
+        $mimeType = $file->getMimeType();
+        $fileSize = $file->getSize();
+
+        // ファイルを保存
+        $timestamp = now()->format('YmdHis');
+        $sanitizedName = preg_replace('/[^a-zA-Z0-9_.-]/', '_', pathinfo($originalName, PATHINFO_FILENAME));
+        $fileName = "{$timestamp}_{$sanitizedName}.{$extension}";
+        $filePath = $file->storeAs('attachments', $fileName, 'public');
+
+        \Log::info('uploadWithFile $filePath: ' . $filePath);
+
+        // ユーザーメッセージを保存
+        $userMessage = Message::create([
+            'conversation_id' => $conversation->id,
+            'role' => 'user',
+            'content' => $messageText,
+        ]);
+
+        // 添付ファイル情報を保存
+        $attachment = \App\Models\Attachment::create([
+            'message_id'        => $userMessage->id,
+            'filename'          => $originalName,      // 保存されたファイル名
+            'original_filename' => $originalName,      // 元のファイル名
+            'filepath'          => $filePath,          // ファイルパス
+            'mime_type'         => $mimeType,          // MIMEタイプ
+            'size'              => $fileSize,          // ファイルサイズ
+        ]);
+
+        // ファイルの内容を取得
+        $fileContent = null;
+        $isImage = str_starts_with($mimeType, 'image/');
+
+        if ($isImage) {
+            // 画像ファイルの場合、base64エンコード
+            $imageData = base64_encode(file_get_contents(storage_path('app/public/' . $filePath)));
+            $mediaType = $mimeType;
+        } else {
+            // テキストファイルの場合、内容を読み取る
+            try {
+                $fileContent = file_get_contents(storage_path('app/public/' . $filePath));
+            } catch (\Exception $e) {
+                Log::error('File read error: ' . $e->getMessage());
+            }
+        }
+
+        // 会話履歴を取得
+        $messages = $conversation->messages()
+            ->orderBy('created_at', 'asc')
+            ->get()
+            ->map(function ($msg) {
+                return [
+                    'role' => $msg->role,
+                    'content' => $msg->content,
+                ];
+            })
+            ->toArray();
+
+        // 最後のメッセージ（ファイル付き）を特別に処理
+        $lastMessage = &$messages[count($messages) - 1];
+        
+        if ($isImage) {
+            // 画像の場合
+            $lastMessage['content'] = [
+                [
+                    'type' => 'image',
+                    'source' => [
+                        'type' => 'base64',
+                        'media_type' => $mediaType,
+                        'data' => $imageData,
+                    ],
+                ],
+                [
+                    'type' => 'text',
+                    'text' => $messageText,
+                ],
+            ];
+        } else {
+            // テキストファイルの場合
+            $lastMessage['content'] = $messageText . "\n\n【添付ファイル: {$originalName}】\n```\n" . $fileContent . "\n```";
+        }
+
+        // システムプロンプト
+        $systemPrompt = $conversation->mode === 'dev'
+            ? 'あなたは優秀なプログラミングアシスタントです。画像を分析したり、コードを読んだりできます。'
+            : 'あなたは親切な学習アシスタントです。画像を見て説明したり、ファイルの内容を解説できます。';
+
+        try {
+            // Claude APIにリクエスト
+            $response = Http::withHeaders([
+                'x-api-key' => config('services.claude.api_key'),
+                'anthropic-version' => '2023-06-01',
+                'content-type' => 'application/json',
+            ])->timeout(120)->post('https://api.anthropic.com/v1/messages', [
+                'model' => 'claude-sonnet-4-20250514',
+                'max_tokens' => 4096,
+                'system' => $systemPrompt,
+                'messages' => $messages,
+            ]);
+
+            if (!$response->successful()) {
+                throw new \Exception('Claude API request failed: ' . $response->body());
+            }
+
+            $data = $response->json();
+
+            // Claudeの応答を取得
+            $assistantContent = '';
+            foreach ($data['content'] as $content) {
+                if ($content['type'] === 'text') {
+                    $assistantContent .= $content['text'];
+                }
+            }
+
+            // トークン情報を取得
+            $usage = $data['usage'] ?? null;
+            $inputTokens = $usage['input_tokens'] ?? null;
+            $outputTokens = $usage['output_tokens'] ?? null;
+            $totalTokens = $inputTokens && $outputTokens ? $inputTokens + $outputTokens : null;
+
+            // Claudeの応答を保存
+            $assistantMessage = Message::create([
+                'conversation_id' => $conversation->id,
+                'role' => 'assistant',
+                'content' => $assistantContent,
+                'input_tokens' => $inputTokens,
+                'output_tokens' => $outputTokens,
+                'total_tokens' => $totalTokens,
+            ]);
+
+            // コスト計算
+            $inputCost = ($inputTokens ?? 0) / 1_000_000 * 3;
+            $outputCost = ($outputTokens ?? 0) / 1_000_000 * 15;
+            $totalCost = $inputCost + $outputCost;
+
+            return response()->json([
+                'success' => true,
+                'conversation_id' => $conversation->id,
+                'user_message' => [
+                    'id' => $userMessage->id,
+                    'role' => 'user',
+                    'content' => $messageText,
+                    'created_at' => $userMessage->created_at,
+                ],
+                'attachment' => [
+                    'id' => $attachment->id,
+                    'file_name' => $originalName,
+                    'file_type' => $mimeType,
+                    'file_size' => $fileSize,
+                    'file_url' => asset('storage/' . $filePath),
+                ],
+                'assistant_message' => [
+                    'id' => $assistantMessage->id,
+                    'role' => 'assistant',
+                    'content' => $assistantMessage->content,
+                    'created_at' => $assistantMessage->created_at,
+                ],
+                'tokens' => [
+                    'input' => $inputTokens,
+                    'output' => $outputTokens,
+                    'total' => $totalTokens,
+                ],
+                'cost' => [
+                    'usd' => $totalCost,
+                    'jpy' => $totalCost * 150,
+                ],
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Claude API Error with file: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'メッセージの送信に失敗しました',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }

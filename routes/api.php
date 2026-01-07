@@ -35,6 +35,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/conversations/{conversation}/messages', [MessageController::class, 'store']);
     Route::post('/conversations/{conversation}/messages/stream', [MessageController::class, 'stream']); 
 
+     // ファイルアップロード（NEW!）
+    Route::post('/conversations/{conversation}/messages/upload', [MessageController::class, 'uploadWithFile']);
+       
     // 統計関連
     Route::get('/stats/monthly', [ConversationController::class, 'monthlyStats']);
     Route::get('/stats/detailed', [ConversationController::class, 'detailedStats']);

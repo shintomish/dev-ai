@@ -1,0 +1,2134 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ファイルアップロードAPIテスト</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #555;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        textarea {
+            resize: vertical;
+            font-family: sans-serif;
+        }
+        input[type="file"] {
+            padding: 5px;
+        }
+        button {
+            padding: 12px 30px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #0b7dda;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        #preview {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: #f9f9f9;
+        }
+        #preview img {
+            max-width: 100%;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        #response {
+            min-height: 150px;
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin-top: 20px;
+            white-space: pre-wrap;
+            background: #f9f9f9;
+            border-radius: 4px;
+            line-height: 1.6;
+        }
+        .info {
+            color: #666;
+            font-size: 14px;
+            margin-top: 15px;
+            padding: 10px;
+            background: #e3f2fd;
+            border-radius: 4px;
+        }
+        .file-info {
+            color: #666;
+            font-size: 13px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📤 ファイルアップロードAPI テスト</h1>
+        
+        <div class="form-group">
+            <label>トークン:</label>
+            <input type="text" id="token" placeholder="Bearer トークンを入力">
+        </div>
+        
+        <div class="form-group">
+            <label>会話ID:</label>
+            <input type="number" id="conversationId" placeholder="会話IDを入力">
+        </div>
+        
+        <div class="form-group">
+            <label>メッセージ:</label>
+            <textarea id="message" rows="3" placeholder="メッセージを入力">このファイルについて説明してください。</textarea>
+        </div>
+        
+        <div class="form-group">
+            <label>ファイル:</label>
+            <input type="file" id="file" onchange="previewFile()" 
+                   accept=".txt,.md,.csv,.json,.py,.js,.html,.css,.png,.jpg,.jpeg,.gif,.webp,.pdf">
+            <div class="file-info">対応: テキスト、画像（PNG/JPG/GIF）、PDF（最大10MB）</div>
+        </div>
+        
+        <div id="preview"></div>
+        
+        <button id="sendBtn" onclick="uploadFile()">ファイルをアップロード</button>
+        
+        <div id="response"></div>
+        
+        <div class="info" id="info">トークン、会話ID、ファイルを選択してください</div>
+    </div>
+
+    <script>
+        let isUploading = false;
+
+        function previewFile() {
+            const file = document.getElementById('file').files[0];
+            const preview = document.getElementById('preview');
+            
+            if (!file) {
+                preview.innerHTML = '';
+                return;
+            }
+
+            const fileSize = (file.size / 1024).toFixed(2);
+            let html = `<strong>選択したファイル:</strong><br>`;
+            html += `名前: ${file.name}<br>`;
+            html += `サイズ: ${fileSize} KB<br>`;
+            html += `タイプ: ${file.type}`;
+
+            // 画像の場合、プレビューを表示
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    html += `<br><img src="${e.target.result}" alt="プレビュー">`;
+                    preview.innerHTML = html;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                preview.innerHTML = html;
+            }
+        }
+
+        async function uploadFile() {
+            const token = document.getElementById('token').value.trim();
+            const conversationId = document.getElementById('conversationId').value.trim();
+            const message = document.getElementById('message').value.trim();
+            const fileInput = document.getElementById('file');
+            const responseDiv = document.getElementById('response');
+            const infoDiv = document.getElementById('info');
+            const sendBtn = document.getElementById('sendBtn');
+
+            if (!token || !conversationId || !message || !fileInput.files[0]) {
+                alert('すべての項目を入力してください');
+                return;
+            }
+
+            if (isUploading) {
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('message', message);
+            formData.append('file', file);
+
+            isUploading = true;
+            sendBtn.disabled = true;
+            responseDiv.textContent = 'アップロード中...';
+            infoDiv.textContent = 'ファイルをアップロードしています...';
+
+            try {
+                const response = await fetch(`/api/conversations/${conversationId}/messages/upload`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json',
+                    },
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+
+                const data = await response.json();
+
+                if (data.success) {
+                    responseDiv.textContent = data.assistant_message.content;
+                    infoDiv.innerHTML = `
+                        <strong>✅ 成功！</strong><br>
+                        ファイル: ${data.attachment.file_name} (${(data.attachment.file_size / 1024).toFixed(2)} KB)<br>
+                        トークン: ${data.tokens.total?.toLocaleString()} 
+                        (入力: ${data.tokens.input?.toLocaleString()}, 出力: ${data.tokens.output?.toLocaleString()})<br>
+                        コスト: ¥${data.cost.jpy.toFixed(2)}
+                    `;
+                } else {
+                    throw new Error(data.message || '不明なエラー');
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                responseDiv.textContent = '';
+                infoDiv.innerHTML = '<strong style="color: red;">❌ エラー:</strong> ' + error.message;
+            } finally {
+                isUploading = false;
+                sendBtn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html><!DOCTYPE html>
+<html lang="ja">
+	<head>
+		    <meta charset="UTF-8">
+		        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+			    <title>ファイルアップロードAPIテスト</title>
+			        <style>
+        body {
+		            font-family: sans-serif;
+			                max-width: 800px;
+					            margin: 50px auto;
+						                padding: 20px;
+								            background: #f5f5f5;
+									            }
+	        .container {
+			            background: white;
+				                border-radius: 8px;
+						            padding: 30px;
+							                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+									        }
+		        h1 {
+				            color: #333;
+					                margin-bottom: 30px;
+							        }
+			        .form-group {
+					            margin-bottom: 20px;
+						            }
+				        label {
+						            display: block;
+							                font-weight: bold;
+									            margin-bottom: 5px;
+										                color: #555;
+												        }
+					        input, textarea {
+							            width: 100%;
+								                padding: 10px;
+										            border: 1px solid #ddd;
+											                border-radius: 4px;
+													            font-size: 14px;
+														                box-sizing: border-box;
+																        }
+						        textarea {
+								            resize: vertical;
+									                font-family: sans-serif;
+											        }
+							        input[type="file"] {
+									            padding: 5px;
+										            }
+								        button {
+										            padding: 12px 30px;
+											                background: #2196F3;
+													            color: white;
+														                border: none;
+																            border-radius: 4px;
+																	                cursor: pointer;
+																			            font-size: 16px;
+																				                font-weight: bold;
+																						        }
+									        button:hover {
+											            background: #0b7dda;
+												            }
+										        button:disabled {
+												            background: #ccc;
+													                cursor: not-allowed;
+															        }
+											        #preview {
+													            margin-top: 20px;
+														                padding: 15px;
+																            border: 1px solid #ddd;
+																	                border-radius: 4px;
+																			            background: #f9f9f9;
+																				            }
+												        #preview img {
+														            max-width: 100%;
+															                border-radius: 4px;
+																	            margin-top: 10px;
+																		            }
+													        #response {
+															            min-height: 150px;
+																                border: 1px solid #ddd;
+																		            padding: 20px;
+																			                margin-top: 20px;
+																					            white-space: pre-wrap;
+																						                background: #f9f9f9;
+																								            border-radius: 4px;
+																									                line-height: 1.6;
+																											        }
+														        .info {
+																            color: #666;
+																	                font-size: 14px;
+																			            margin-top: 15px;
+																				                padding: 10px;
+																						            background: #e3f2fd;
+																							                border-radius: 4px;
+																									        }
+															        .file-info {
+																	            color: #666;
+																		                font-size: 13px;
+																				            margin-top: 5px;
+																					            }
+																    </style>
+	</head>
+	<body>
+		    <div class="container">
+			            <h1>📤 ファイルアップロードAPI テスト</h1>
+				            
+				            <div class="form-group">
+						                <label>トークン:</label>
+								            <input type="text" id="token" placeholder="Bearer トークンを入力">
+									            </div>
+										            
+										            <div class="form-group">
+												                <label>会話ID:</label>
+														            <input type="number" id="conversationId" placeholder="会話IDを入力">
+															            </div>
+																            
+																            <div class="form-group">
+																		                <label>メッセージ:</label>
+																				            <textarea id="message" rows="3" placeholder="メッセージを入力">このファイルについて説明してください。</textarea>
+																					            </div>
+																						            
+																						            <div class="form-group">
+																								                <label>ファイル:</label>
+																										            <input type="file" id="file" onchange="previewFile()" 
+																															                    accept=".txt,.md,.csv,.json,.py,.js,.html,.css,.png,.jpg,.jpeg,.gif,.webp,.pdf">
+																											                <div class="file-info">対応: テキスト、画像（PNG/JPG/GIF）、PDF（最大10MB）</div>
+																													        </div>
+																														        
+																														        <div id="preview"></div>
+																															        
+																															        <button id="sendBtn" onclick="uploadFile()">ファイルをアップロード</button>
+																																        
+																																        <div id="response"></div>
+																																	        
+																																	        <div class="info" id="info">トークン、会話ID、ファイルを選択してください</div>
+																																		    </div>
+
+																																		        <script>
+																																				        let isUploading = false;
+
+																																				        function previewFile() {
+																																																																										            const file = document.getElementById('file').files[0];
+																																																																										            const preview = document.getElementById('preview');
+																																																																										            
+																																																																										            if (!file) {
+																																																																																																																                    preview.innerHTML = '';
+																																																																																																																                    return;
+																																																																																																																                }
+
+																																																																										            const fileSize = (file.size / 1024).toFixed(2);
+																																																																										            let html = `<strong>選択したファイル:</strong><br>`;
+																																																																										            html += `名前: ${file.name}<br>`;
+																																																																										            html += `サイズ: ${fileSize} KB<br>`;
+																																																																										            html += `タイプ: ${file.type}`;
+
+																																																																										            // 画像の場合、プレビューを表示
+																																																																										            if (file.type.startsWith('image/')) {
+																																																																																																																                    const reader = new FileReader();
+																																																																																																																                    reader.onload = function(e) {
+																																																																																																																																																							                        html += `<br><img src="${e.target.result}" alt="プレビュー">`;
+																																																																																																																																																							                        preview.innerHTML = html;
+																																																																																																																																																							                    };
+																																																																																																																                    reader.readAsDataURL(file);
+																																																																																																																                } else {
+																																																																																																																																																							                preview.innerHTML = html;
+																																																																																																																																																							            }
+																																																																										        }
+
+																																				        async function uploadFile() {
+																																																																										            const token = document.getElementById('token').value.trim();
+																																																																										            const conversationId = document.getElementById('conversationId').value.trim();
+																																																																										            const message = document.getElementById('message').value.trim();
+																																																																										            const fileInput = document.getElementById('file');
+																																																																										            const responseDiv = document.getElementById('response');
+																																																																										            const infoDiv = document.getElementById('info');
+																																																																										            const sendBtn = document.getElementById('sendBtn');
+
+																																																																										            if (!token || !conversationId || !message || !fileInput.files[0]) {
+																																																																																																																                    alert('すべての項目を入力してください');
+																																																																																																																                    return;
+																																																																																																																                }
+
+																																																																										            if (isUploading) {
+																																																																																																																                    return;
+																																																																																																																                }
+
+																																																																										            const file = fileInput.files[0];
+																																																																										            const formData = new FormData();
+																																																																										            formData.append('message', message);
+																																																																										            formData.append('file', file);
+
+																																																																										            isUploading = true;
+																																																																										            sendBtn.disabled = true;
+																																																																										            responseDiv.textContent = 'アップロード中...';
+																																																																										            infoDiv.textContent = 'ファイルをアップロードしています...';
+
+																																																																										            try {
+																																																																																																																                    const response = await fetch(`/api/conversations/${conversationId}/messages/upload`, {
+																																																																																																																																																							                        method: 'POST',
+																																																																																																																																																							                        headers: {
+																																																																																																																																																																																															                        'Authorization': `Bearer ${token}`,
+																																																																																																																																																																																															                        'Accept': 'application/json',
+																																																																																																																																																																																															                    },
+																																																																																																																																																							                        body: formData
+																																																																																																																																																							                    });
+
+																																																																																																																                    if (!response.ok) {
+																																																																																																																																																							                        const errorText = await response.text();
+																																																																																																																																																							                        throw new Error(`HTTP ${response.status}: ${errorText}`);
+																																																																																																																																																							                    }
+
+																																																																																																																                    const data = await response.json();
+
+																																																																																																																                    if (data.success) {
+																																																																																																																																																							                        responseDiv.textContent = data.assistant_message.content;
+																																																																																																																																																							                        infoDiv.innerHTML = `
+																																			                               <strong>✅ 成功！</strong><br>
+																																			                               ファイル: ${data.attachment.file_name} (${(data.attachment.file_size / 1024).toFixed(2)} KB)<br>
+																																			                               トークン: ${data.tokens.total?.toLocaleString()} 
+																																			                               (入力: ${data.tokens.input?.toLocaleString()}, 出力: ${data.tokens.output?.toLocaleString()})<br>
+																																			                               コスト: ¥${data.cost.jpy.toFixed(2)}
+																																			                           `;
+																																																																																																																																																							                    } else {
+																																																																																																																																																																																														                        throw new Error(data.message || '不明なエラー');
+																																																																																																																																																																																														                    }
+
+																																																																																																																                } catch (error) {
+																																																																																																																																																							                console.error('Error:', error);
+																																																																																																																																																							                responseDiv.textContent = '';
+																																																																																																																																																							                infoDiv.innerHTML = '<strong style="color: red;">❌ エラー:</strong> ' + error.message;
+																																																																																																																																																							            } finally {
+																																																																																																																																																																																													                    isUploading = false;
+																																																																																																																																																																																													                    sendBtn.disabled = false;
+																																																																																																																																																																																													                }
+																																																																										        }
+																																				    </script>
+	</body>
+</html><!DOCTYPE html>
+<html lang="ja">
+	<head>
+		    <meta charset="UTF-8">
+		        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+			    <title>ファイルアップロードAPIテスト</title>
+			        <style>
+        body {
+		            font-family: sans-serif;
+			                max-width: 800px;
+					            margin: 50px auto;
+						                padding: 20px;
+								            background: #f5f5f5;
+									            }
+	        .container {
+			            background: white;
+				                border-radius: 8px;
+						            padding: 30px;
+							                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+									        }
+		        h1 {
+				            color: #333;
+					                margin-bottom: 30px;
+							        }
+			        .form-group {
+					            margin-bottom: 20px;
+						            }
+				        label {
+						            display: block;
+							                font-weight: bold;
+									            margin-bottom: 5px;
+										                color: #555;
+												        }
+					        input, textarea {
+							            width: 100%;
+								                padding: 10px;
+										            border: 1px solid #ddd;
+											                border-radius: 4px;
+													            font-size: 14px;
+														                box-sizing: border-box;
+																        }
+						        textarea {
+								            resize: vertical;
+									                font-family: sans-serif;
+											        }
+							        input[type="file"] {
+									            padding: 5px;
+										            }
+								        button {
+										            padding: 12px 30px;
+											                background: #2196F3;
+													            color: white;
+														                border: none;
+																            border-radius: 4px;
+																	                cursor: pointer;
+																			            font-size: 16px;
+																				                font-weight: bold;
+																						        }
+									        button:hover {
+											            background: #0b7dda;
+												            }
+										        button:disabled {
+												            background: #ccc;
+													                cursor: not-allowed;
+															        }
+											        #preview {
+													            margin-top: 20px;
+														                padding: 15px;
+																            border: 1px solid #ddd;
+																	                border-radius: 4px;
+																			            background: #f9f9f9;
+																				            }
+												        #preview img {
+														            max-width: 100%;
+															                border-radius: 4px;
+																	            margin-top: 10px;
+																		            }
+													        #response {
+															            min-height: 150px;
+																                border: 1px solid #ddd;
+																		            padding: 20px;
+																			                margin-top: 20px;
+																					            white-space: pre-wrap;
+																						                background: #f9f9f9;
+																								            border-radius: 4px;
+																									                line-height: 1.6;
+																											        }
+														        .info {
+																            color: #666;
+																	                font-size: 14px;
+																			            margin-top: 15px;
+																				                padding: 10px;
+																						            background: #e3f2fd;
+																							                border-radius: 4px;
+																									        }
+															        .file-info {
+																	            color: #666;
+																		                font-size: 13px;
+																				            margin-top: 5px;
+																					            }
+																    </style>
+	</head>
+	<body>
+		    <div class="container">
+			            <h1>📤 ファイルアップロードAPI テスト</h1>
+				            
+				            <div class="form-group">
+						                <label>トークン:</label>
+								            <input type="text" id="token" placeholder="Bearer トークンを入力">
+									            </div>
+										            
+										            <div class="form-group">
+												                <label>会話ID:</label>
+														            <input type="number" id="conversationId" placeholder="会話IDを入力">
+															            </div>
+																            
+																            <div class="form-group">
+																		                <label>メッセージ:</label>
+																				            <textarea id="message" rows="3" placeholder="メッセージを入力">このファイルについて説明してください。</textarea>
+																					            </div>
+																						            
+																						            <div class="form-group">
+																								                <label>ファイル:</label>
+																										            <input type="file" id="file" onchange="previewFile()" 
+																															                    accept=".txt,.md,.csv,.json,.py,.js,.html,.css,.png,.jpg,.jpeg,.gif,.webp,.pdf">
+																											                <div class="file-info">対応: テキスト、画像（PNG/JPG/GIF）、PDF（最大10MB）</div>
+																													        </div>
+																														        
+																														        <div id="preview"></div>
+																															        
+																															        <button id="sendBtn" onclick="uploadFile()">ファイルをアップロード</button>
+																																        
+																																        <div id="response"></div>
+																																	        
+																																	        <div class="info" id="info">トークン、会話ID、ファイルを選択してください</div>
+																																		    </div>
+
+																																		        <script>
+																																				        let isUploading = false;
+
+																																				        function previewFile() {
+																																																																										            const file = document.getElementById('file').files[0];
+																																																																										            const preview = document.getElementById('preview');
+																																																																										            
+																																																																										            if (!file) {
+																																																																																																																                    preview.innerHTML = '';
+																																																																																																																                    return;
+																																																																																																																                }
+
+																																																																										            const fileSize = (file.size / 1024).toFixed(2);
+																																																																										            let html = `<strong>選択したファイル:</strong><br>`;
+																																																																										            html += `名前: ${file.name}<br>`;
+																																																																										            html += `サイズ: ${fileSize} KB<br>`;
+																																																																										            html += `タイプ: ${file.type}`;
+
+																																																																										            // 画像の場合、プレビューを表示
+																																																																										            if (file.type.startsWith('image/')) {
+																																																																																																																                    const reader = new FileReader();
+																																																																																																																                    reader.onload = function(e) {
+																																																																																																																																																							                        html += `<br><img src="${e.target.result}" alt="プレビュー">`;
+																																																																																																																																																							                        preview.innerHTML = html;
+																																																																																																																																																							                    };
+																																																																																																																                    reader.readAsDataURL(file);
+																																																																																																																                } else {
+																																																																																																																																																							                preview.innerHTML = html;
+																																																																																																																																																							            }
+																																																																										        }
+
+																																				        async function uploadFile() {
+																																																																										            const token = document.getElementById('token').value.trim();
+																																																																										            const conversationId = document.getElementById('conversationId').value.trim();
+																																																																										            const message = document.getElementById('message').value.trim();
+																																																																										            const fileInput = document.getElementById('file');
+																																																																										            const responseDiv = document.getElementById('response');
+																																																																										            const infoDiv = document.getElementById('info');
+																																																																										            const sendBtn = document.getElementById('sendBtn');
+
+																																																																										            if (!token || !conversationId || !message || !fileInput.files[0]) {
+																																																																																																																                    alert('すべての項目を入力してください');
+																																																																																																																                    return;
+																																																																																																																                }
+
+																																																																										            if (isUploading) {
+																																																																																																																                    return;
+																																																																																																																                }
+
+																																																																										            const file = fileInput.files[0];
+																																																																										            const formData = new FormData();
+																																																																										            formData.append('message', message);
+																																																																										            formData.append('file', file);
+
+																																																																										            isUploading = true;
+																																																																										            sendBtn.disabled = true;
+																																																																										            responseDiv.textContent = 'アップロード中...';
+																																																																										            infoDiv.textContent = 'ファイルをアップロードしています...';
+
+																																																																										            try {
+																																																																																																																                    const response = await fetch(`/api/conversations/${conversationId}/messages/upload`, {
+																																																																																																																																																							                        method: 'POST',
+																																																																																																																																																							                        headers: {
+																																																																																																																																																																																															                        'Authorization': `Bearer ${token}`,
+																																																																																																																																																																																															                        'Accept': 'application/json',
+																																																																																																																																																																																															                    },
+																																																																																																																																																							                        body: formData
+																																																																																																																																																							                    });
+
+																																																																																																																                    if (!response.ok) {
+																																																																																																																																																							                        const errorText = await response.text();
+																																																																																																																																																							                        throw new Error(`HTTP ${response.status}: ${errorText}`);
+																																																																																																																																																							                    }
+
+																																																																																																																                    const data = await response.json();
+
+																																																																																																																                    if (data.success) {
+																																																																																																																																																							                        responseDiv.textContent = data.assistant_message.content;
+																																																																																																																																																							                        infoDiv.innerHTML = `
+																																			                               <strong>✅ 成功！</strong><br>
+																																			                               ファイル: ${data.attachment.file_name} (${(data.attachment.file_size / 1024).toFixed(2)} KB)<br>
+																																			                               トークン: ${data.tokens.total?.toLocaleString()} 
+																																			                               (入力: ${data.tokens.input?.toLocaleString()}, 出力: ${data.tokens.output?.toLocaleString()})<br>
+																																			                               コスト: ¥${data.cost.jpy.toFixed(2)}
+																																			                           `;
+																																																																																																																																																							                    } else {
+																																																																																																																																																																																														                        throw new Error(data.message || '不明なエラー');
+																																																																																																																																																																																														                    }
+
+																																																																																																																                } catch (error) {
+																																																																																																																																																							                console.error('Error:', error);
+																																																																																																																																																							                responseDiv.textContent = '';
+																																																																																																																																																							                infoDiv.innerHTML = '<strong style="color: red;">❌ エラー:</strong> ' + error.message;
+																																																																																																																																																							            } finally {
+																																																																																																																																																																																													                    isUploading = false;
+																																																																																																																																																																																													                    sendBtn.disabled = false;
+																																																																																																																																																																																													                }
+																																																																										        }
+																																				    </script>
+	</body>
+</html><!DOCTYPE html>
+<html lang="ja">
+	<head>
+		    <meta charset="UTF-8">
+		        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+			    <title>ファイルアップロードAPIテスト</title>
+			        <style>
+        body {
+		            font-family: sans-serif;
+			                max-width: 800px;
+					            margin: 50px auto;
+						                padding: 20px;
+								            background: #f5f5f5;
+									            }
+	        .container {
+			            background: white;
+				                border-radius: 8px;
+						            padding: 30px;
+							                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+									        }
+		        h1 {
+				            color: #333;
+					                margin-bottom: 30px;
+							        }
+			        .form-group {
+					            margin-bottom: 20px;
+						            }
+				        label {
+						            display: block;
+							                font-weight: bold;
+									            margin-bottom: 5px;
+										                color: #555;
+												        }
+					        input, textarea {
+							            width: 100%;
+								                padding: 10px;
+										            border: 1px solid #ddd;
+											                border-radius: 4px;
+													            font-size: 14px;
+														                box-sizing: border-box;
+																        }
+						        textarea {
+								            resize: vertical;
+									                font-family: sans-serif;
+											        }
+							        input[type="file"] {
+									            padding: 5px;
+										            }
+								        button {
+										            padding: 12px 30px;
+											                background: #2196F3;
+													            color: white;
+														                border: none;
+																            border-radius: 4px;
+																	                cursor: pointer;
+																			            font-size: 16px;
+																				                font-weight: bold;
+																						        }
+									        button:hover {
+											            background: #0b7dda;
+												            }
+										        button:disabled {
+												            background: #ccc;
+													                cursor: not-allowed;
+															        }
+											        #preview {
+													            margin-top: 20px;
+														                padding: 15px;
+																            border: 1px solid #ddd;
+																	                border-radius: 4px;
+																			            background: #f9f9f9;
+																				            }
+												        #preview img {
+														            max-width: 100%;
+															                border-radius: 4px;
+																	            margin-top: 10px;
+																		            }
+													        #response {
+															            min-height: 150px;
+																                border: 1px solid #ddd;
+																		            padding: 20px;
+																			                margin-top: 20px;
+																					            white-space: pre-wrap;
+																						                background: #f9f9f9;
+																								            border-radius: 4px;
+																									                line-height: 1.6;
+																											        }
+														        .info {
+																            color: #666;
+																	                font-size: 14px;
+																			            margin-top: 15px;
+																				                padding: 10px;
+																						            background: #e3f2fd;
+																							                border-radius: 4px;
+																									        }
+															        .file-info {
+																	            color: #666;
+																		                font-size: 13px;
+																				            margin-top: 5px;
+																					            }
+																    </style>
+	</head>
+	<body>
+		    <div class="container">
+			            <h1>📤 ファイルアップロードAPI テスト</h1>
+				            
+				            <div class="form-group">
+						                <label>トークン:</label>
+								            <input type="text" id="token" placeholder="Bearer トークンを入力">
+									            </div>
+										            
+										            <div class="form-group">
+												                <label>会話ID:</label>
+														            <input type="number" id="conversationId" placeholder="会話IDを入力">
+															            </div>
+																            
+																            <div class="form-group">
+																		                <label>メッセージ:</label>
+																				            <textarea id="message" rows="3" placeholder="メッセージを入力">このファイルについて説明してください。</textarea>
+																					            </div>
+																						            
+																						            <div class="form-group">
+																								                <label>ファイル:</label>
+																										            <input type="file" id="file" onchange="previewFile()" 
+																															                    accept=".txt,.md,.csv,.json,.py,.js,.html,.css,.png,.jpg,.jpeg,.gif,.webp,.pdf">
+																											                <div class="file-info">対応: テキスト、画像（PNG/JPG/GIF）、PDF（最大10MB）</div>
+																													        </div>
+																														        
+																														        <div id="preview"></div>
+																															        
+																															        <button id="sendBtn" onclick="uploadFile()">ファイルをアップロード</button>
+																																        
+																																        <div id="response"></div>
+																																	        
+																																	        <div class="info" id="info">トークン、会話ID、ファイルを選択してください</div>
+																																		    </div>
+
+																																		        <script>
+																																				        let isUploading = false;
+
+																																				        function previewFile() {
+																																																																										            const file = document.getElementById('file').files[0];
+																																																																										            const preview = document.getElementById('preview');
+																																																																										            
+																																																																										            if (!file) {
+																																																																																																																                    preview.innerHTML = '';
+																																																																																																																                    return;
+																																																																																																																                }
+
+																																																																										            const fileSize = (file.size / 1024).toFixed(2);
+																																																																										            let html = `<strong>選択したファイル:</strong><br>`;
+																																																																										            html += `名前: ${file.name}<br>`;
+																																																																										            html += `サイズ: ${fileSize} KB<br>`;
+																																																																										            html += `タイプ: ${file.type}`;
+
+																																																																										            // 画像の場合、プレビューを表示
+																																																																										            if (file.type.startsWith('image/')) {
+																																																																																																																                    const reader = new FileReader();
+																																																																																																																                    reader.onload = function(e) {
+																																																																																																																																																							                        html += `<br><img src="${e.target.result}" alt="プレビュー">`;
+																																																																																																																																																							                        preview.innerHTML = html;
+																																																																																																																																																							                    };
+																																																																																																																                    reader.readAsDataURL(file);
+																																																																																																																                } else {
+																																																																																																																																																							                preview.innerHTML = html;
+																																																																																																																																																							            }
+																																																																										        }
+
+																																				        async function uploadFile() {
+																																																																										            const token = document.getElementById('token').value.trim();
+																																																																										            const conversationId = document.getElementById('conversationId').value.trim();
+																																																																										            const message = document.getElementById('message').value.trim();
+																																																																										            const fileInput = document.getElementById('file');
+																																																																										            const responseDiv = document.getElementById('response');
+																																																																										            const infoDiv = document.getElementById('info');
+																																																																										            const sendBtn = document.getElementById('sendBtn');
+
+																																																																										            if (!token || !conversationId || !message || !fileInput.files[0]) {
+																																																																																																																                    alert('すべての項目を入力してください');
+																																																																																																																                    return;
+																																																																																																																                }
+
+																																																																										            if (isUploading) {
+																																																																																																																                    return;
+																																																																																																																                }
+
+																																																																										            const file = fileInput.files[0];
+																																																																										            const formData = new FormData();
+																																																																										            formData.append('message', message);
+																																																																										            formData.append('file', file);
+
+																																																																										            isUploading = true;
+																																																																										            sendBtn.disabled = true;
+																																																																										            responseDiv.textContent = 'アップロード中...';
+																																																																										            infoDiv.textContent = 'ファイルをアップロードしています...';
+
+																																																																										            try {
+																																																																																																																                    const response = await fetch(`/api/conversations/${conversationId}/messages/upload`, {
+																																																																																																																																																							                        method: 'POST',
+																																																																																																																																																							                        headers: {
+																																																																																																																																																																																															                        'Authorization': `Bearer ${token}`,
+																																																																																																																																																																																															                        'Accept': 'application/json',
+																																																																																																																																																																																															                    },
+																																																																																																																																																							                        body: formData
+																																																																																																																																																							                    });
+
+																																																																																																																                    if (!response.ok) {
+																																																																																																																																																							                        const errorText = await response.text();
+																																																																																																																																																							                        throw new Error(`HTTP ${response.status}: ${errorText}`);
+																																																																																																																																																							                    }
+
+																																																																																																																                    const data = await response.json();
+
+																																																																																																																                    if (data.success) {
+																																																																																																																																																							                        responseDiv.textContent = data.assistant_message.content;
+																																																																																																																																																							                        infoDiv.innerHTML = `
+																																			                               <strong>✅ 成功！</strong><br>
+																																			                               ファイル: ${data.attachment.file_name} (${(data.attachment.file_size / 1024).toFixed(2)} KB)<br>
+																																			                               トークン: ${data.tokens.total?.toLocaleString()} 
+																																			                               (入力: ${data.tokens.input?.toLocaleString()}, 出力: ${data.tokens.output?.toLocaleString()})<br>
+																																			                               コスト: ¥${data.cost.jpy.toFixed(2)}
+																																			                           `;
+																																																																																																																																																							                    } else {
+																																																																																																																																																																																														                        throw new Error(data.message || '不明なエラー');
+																																																																																																																																																																																														                    }
+
+																																																																																																																                } catch (error) {
+																																																																																																																																																							                console.error('Error:', error);
+																																																																																																																																																							                responseDiv.textContent = '';
+																																																																																																																																																							                infoDiv.innerHTML = '<strong style="color: red;">❌ エラー:</strong> ' + error.message;
+																																																																																																																																																							            } finally {
+																																																																																																																																																																																													                    isUploading = false;
+																																																																																																																																																																																													                    sendBtn.disabled = false;
+																																																																																																																																																																																													                }
+																																																																										        }
+																																				    </script>
+	</body>
+</html><!DOCTYPE html>
+<html lang="ja">
+	<head>
+		    <meta charset="UTF-8">
+		        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+			    <title>ファイルアップロードAPIテスト</title>
+			        <style>
+        body {
+		            font-family: sans-serif;
+			                max-width: 800px;
+					            margin: 50px auto;
+						                padding: 20px;
+								            background: #f5f5f5;
+									            }
+	        .container {
+			            background: white;
+				                border-radius: 8px;
+						            padding: 30px;
+							                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+									        }
+		        h1 {
+				            color: #333;
+					                margin-bottom: 30px;
+							        }
+			        .form-group {
+					            margin-bottom: 20px;
+						            }
+				        label {
+						            display: block;
+							                font-weight: bold;
+									            margin-bottom: 5px;
+										                color: #555;
+												        }
+					        input, textarea {
+							            width: 100%;
+								                padding: 10px;
+										            border: 1px solid #ddd;
+											                border-radius: 4px;
+													            font-size: 14px;
+														                box-sizing: border-box;
+																        }
+						        textarea {
+								            resize: vertical;
+									                font-family: sans-serif;
+											        }
+							        input[type="file"] {
+									            padding: 5px;
+										            }
+								        button {
+										            padding: 12px 30px;
+											                background: #2196F3;
+													            color: white;
+														                border: none;
+																            border-radius: 4px;
+																	                cursor: pointer;
+																			            font-size: 16px;
+																				                font-weight: bold;
+																						        }
+									        button:hover {
+											            background: #0b7dda;
+												            }
+										        button:disabled {
+												            background: #ccc;
+													                cursor: not-allowed;
+															        }
+											        #preview {
+													            margin-top: 20px;
+														                padding: 15px;
+																            border: 1px solid #ddd;
+																	                border-radius: 4px;
+																			            background: #f9f9f9;
+																				            }
+												        #preview img {
+														            max-width: 100%;
+															                border-radius: 4px;
+																	            margin-top: 10px;
+																		            }
+													        #response {
+															            min-height: 150px;
+																                border: 1px solid #ddd;
+																		            padding: 20px;
+																			                margin-top: 20px;
+																					            white-space: pre-wrap;
+																						                background: #f9f9f9;
+																								            border-radius: 4px;
+																									                line-height: 1.6;
+																											        }
+														        .info {
+																            color: #666;
+																	                font-size: 14px;
+																			            margin-top: 15px;
+																				                padding: 10px;
+																						            background: #e3f2fd;
+																							                border-radius: 4px;
+																									        }
+															        .file-info {
+																	            color: #666;
+																		                font-size: 13px;
+																				            margin-top: 5px;
+																					            }
+																    </style>
+	</head>
+	<body>
+		    <div class="container">
+			            <h1>📤 ファイルアップロードAPI テスト</h1>
+				            
+				            <div class="form-group">
+						                <label>トークン:</label>
+								            <input type="text" id="token" placeholder="Bearer トークンを入力">
+									            </div>
+										            
+										            <div class="form-group">
+												                <label>会話ID:</label>
+														            <input type="number" id="conversationId" placeholder="会話IDを入力">
+															            </div>
+																            
+																            <div class="form-group">
+																		                <label>メッセージ:</label>
+																				            <textarea id="message" rows="3" placeholder="メッセージを入力">このファイルについて説明してください。</textarea>
+																					            </div>
+																						            
+																						            <div class="form-group">
+																								                <label>ファイル:</label>
+																										            <input type="file" id="file" onchange="previewFile()" 
+																															                    accept=".txt,.md,.csv,.json,.py,.js,.html,.css,.png,.jpg,.jpeg,.gif,.webp,.pdf">
+																											                <div class="file-info">対応: テキスト、画像（PNG/JPG/GIF）、PDF（最大10MB）</div>
+																													        </div>
+																														        
+																														        <div id="preview"></div>
+																															        
+																															        <button id="sendBtn" onclick="uploadFile()">ファイルをアップロード</button>
+																																        
+																																        <div id="response"></div>
+																																	        
+																																	        <div class="info" id="info">トークン、会話ID、ファイルを選択してください</div>
+																																		    </div>
+
+																																		        <script>
+																																				        let isUploading = false;
+
+																																				        function previewFile() {
+																																																																										            const file = document.getElementById('file').files[0];
+																																																																										            const preview = document.getElementById('preview');
+																																																																										            
+																																																																										            if (!file) {
+																																																																																																																                    preview.innerHTML = '';
+																																																																																																																                    return;
+																																																																																																																                }
+
+																																																																										            const fileSize = (file.size / 1024).toFixed(2);
+																																																																										            let html = `<strong>選択したファイル:</strong><br>`;
+																																																																										            html += `名前: ${file.name}<br>`;
+																																																																										            html += `サイズ: ${fileSize} KB<br>`;
+																																																																										            html += `タイプ: ${file.type}`;
+
+																																																																										            // 画像の場合、プレビューを表示
+																																																																										            if (file.type.startsWith('image/')) {
+																																																																																																																                    const reader = new FileReader();
+																																																																																																																                    reader.onload = function(e) {
+																																																																																																																																																							                        html += `<br><img src="${e.target.result}" alt="プレビュー">`;
+																																																																																																																																																							                        preview.innerHTML = html;
+																																																																																																																																																							                    };
+																																																																																																																                    reader.readAsDataURL(file);
+																																																																																																																                } else {
+																																																																																																																																																							                preview.innerHTML = html;
+																																																																																																																																																							            }
+																																																																										        }
+
+																																				        async function uploadFile() {
+																																																																										            const token = document.getElementById('token').value.trim();
+																																																																										            const conversationId = document.getElementById('conversationId').value.trim();
+																																																																										            const message = document.getElementById('message').value.trim();
+																																																																										            const fileInput = document.getElementById('file');
+																																																																										            const responseDiv = document.getElementById('response');
+																																																																										            const infoDiv = document.getElementById('info');
+																																																																										            const sendBtn = document.getElementById('sendBtn');
+
+																																																																										            if (!token || !conversationId || !message || !fileInput.files[0]) {
+																																																																																																																                    alert('すべての項目を入力してください');
+																																																																																																																                    return;
+																																																																																																																                }
+
+																																																																										            if (isUploading) {
+																																																																																																																                    return;
+																																																																																																																                }
+
+																																																																										            const file = fileInput.files[0];
+																																																																										            const formData = new FormData();
+																																																																										            formData.append('message', message);
+																																																																										            formData.append('file', file);
+
+																																																																										            isUploading = true;
+																																																																										            sendBtn.disabled = true;
+																																																																										            responseDiv.textContent = 'アップロード中...';
+																																																																										            infoDiv.textContent = 'ファイルをアップロードしています...';
+
+																																																																										            try {
+																																																																																																																                    const response = await fetch(`/api/conversations/${conversationId}/messages/upload`, {
+																																																																																																																																																							                        method: 'POST',
+																																																																																																																																																							                        headers: {
+																																																																																																																																																																																															                        'Authorization': `Bearer ${token}`,
+																																																																																																																																																																																															                        'Accept': 'application/json',
+																																																																																																																																																																																															                    },
+																																																																																																																																																							                        body: formData
+																																																																																																																																																							                    });
+
+																																																																																																																                    if (!response.ok) {
+																																																																																																																																																							                        const errorText = await response.text();
+																																																																																																																																																							                        throw new Error(`HTTP ${response.status}: ${errorText}`);
+																																																																																																																																																							                    }
+
+																																																																																																																                    const data = await response.json();
+
+																																																																																																																                    if (data.success) {
+																																																																																																																																																							                        responseDiv.textContent = data.assistant_message.content;
+																																																																																																																																																							                        infoDiv.innerHTML = `
+																																			                               <strong>✅ 成功！</strong><br>
+																																			                               ファイル: ${data.attachment.file_name} (${(data.attachment.file_size / 1024).toFixed(2)} KB)<br>
+																																			                               トークン: ${data.tokens.total?.toLocaleString()} 
+																																			                               (入力: ${data.tokens.input?.toLocaleString()}, 出力: ${data.tokens.output?.toLocaleString()})<br>
+																																			                               コスト: ¥${data.cost.jpy.toFixed(2)}
+																																			                           `;
+																																																																																																																																																							                    } else {
+																																																																																																																																																																																														                        throw new Error(data.message || '不明なエラー');
+																																																																																																																																																																																														                    }
+
+																																																																																																																                } catch (error) {
+																																																																																																																																																							                console.error('Error:', error);
+																																																																																																																																																							                responseDiv.textContent = '';
+																																																																																																																																																							                infoDiv.innerHTML = '<strong style="color: red;">❌ エラー:</strong> ' + error.message;
+																																																																																																																																																							            } finally {
+																																																																																																																																																																																													                    isUploading = false;
+																																																																																																																																																																																													                    sendBtn.disabled = false;
+																																																																																																																																																																																													                }
+																																																																										        }
+																																				    </script>
+	</body>
+</html><!DOCTYPE html>
+<html lang="ja">
+	<head>
+		    <meta charset="UTF-8">
+		        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+			    <title>ファイルアップロードAPIテスト</title>
+			        <style>
+        body {
+		            font-family: sans-serif;
+			                max-width: 800px;
+					            margin: 50px auto;
+						                padding: 20px;
+								            background: #f5f5f5;
+									            }
+	        .container {
+			            background: white;
+				                border-radius: 8px;
+						            padding: 30px;
+							                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+									        }
+		        h1 {
+				            color: #333;
+					                margin-bottom: 30px;
+							        }
+			        .form-group {
+					            margin-bottom: 20px;
+						            }
+				        label {
+						            display: block;
+							                font-weight: bold;
+									            margin-bottom: 5px;
+										                color: #555;
+												        }
+					        input, textarea {
+							            width: 100%;
+								                padding: 10px;
+										            border: 1px solid #ddd;
+											                border-radius: 4px;
+													            font-size: 14px;
+														                box-sizing: border-box;
+																        }
+						        textarea {
+								            resize: vertical;
+									                font-family: sans-serif;
+											        }
+							        input[type="file"] {
+									            padding: 5px;
+										            }
+								        button {
+										            padding: 12px 30px;
+											                background: #2196F3;
+													            color: white;
+														                border: none;
+																            border-radius: 4px;
+																	                cursor: pointer;
+																			            font-size: 16px;
+																				                font-weight: bold;
+																						        }
+									        button:hover {
+											            background: #0b7dda;
+												            }
+										        button:disabled {
+												            background: #ccc;
+													                cursor: not-allowed;
+															        }
+											        #preview {
+													            margin-top: 20px;
+														                padding: 15px;
+																            border: 1px solid #ddd;
+																	                border-radius: 4px;
+																			            background: #f9f9f9;
+																				            }
+												        #preview img {
+														            max-width: 100%;
+															                border-radius: 4px;
+																	            margin-top: 10px;
+																		            }
+													        #response {
+															            min-height: 150px;
+																                border: 1px solid #ddd;
+																		            padding: 20px;
+																			                margin-top: 20px;
+																					            white-space: pre-wrap;
+																						                background: #f9f9f9;
+																								            border-radius: 4px;
+																									                line-height: 1.6;
+																											        }
+														        .info {
+																            color: #666;
+																	                font-size: 14px;
+																			            margin-top: 15px;
+																				                padding: 10px;
+																						            background: #e3f2fd;
+																							                border-radius: 4px;
+																									        }
+															        .file-info {
+																	            color: #666;
+																		                font-size: 13px;
+																				            margin-top: 5px;
+																					            }
+																    </style>
+	</head>
+	<body>
+		    <div class="container">
+			            <h1>📤 ファイルアップロードAPI テスト</h1>
+				            
+				            <div class="form-group">
+						                <label>トークン:</label>
+								            <input type="text" id="token" placeholder="Bearer トークンを入力">
+									            </div>
+										            
+										            <div class="form-group">
+												                <label>会話ID:</label>
+														            <input type="number" id="conversationId" placeholder="会話IDを入力">
+															            </div>
+																            
+																            <div class="form-group">
+																		                <label>メッセージ:</label>
+																				            <textarea id="message" rows="3" placeholder="メッセージを入力">このファイルについて説明してください。</textarea>
+																					            </div>
+																						            
+																						            <div class="form-group">
+																								                <label>ファイル:</label>
+																										            <input type="file" id="file" onchange="previewFile()" 
+																															                    accept=".txt,.md,.csv,.json,.py,.js,.html,.css,.png,.jpg,.jpeg,.gif,.webp,.pdf">
+																											                <div class="file-info">対応: テキスト、画像（PNG/JPG/GIF）、PDF（最大10MB）</div>
+																													        </div>
+																														        
+																														        <div id="preview"></div>
+																															        
+																															        <button id="sendBtn" onclick="uploadFile()">ファイルをアップロード</button>
+																																        
+																																        <div id="response"></div>
+																																	        
+																																	        <div class="info" id="info">トークン、会話ID、ファイルを選択してください</div>
+																																		    </div>
+
+																																		        <script>
+																																				        let isUploading = false;
+
+																																				        function previewFile() {
+																																																																										            const file = document.getElementById('file').files[0];
+																																																																										            const preview = document.getElementById('preview');
+																																																																										            
+																																																																										            if (!file) {
+																																																																																																																                    preview.innerHTML = '';
+																																																																																																																                    return;
+																																																																																																																                }
+
+																																																																										            const fileSize = (file.size / 1024).toFixed(2);
+																																																																										            let html = `<strong>選択したファイル:</strong><br>`;
+																																																																										            html += `名前: ${file.name}<br>`;
+																																																																										            html += `サイズ: ${fileSize} KB<br>`;
+																																																																										            html += `タイプ: ${file.type}`;
+
+																																																																										            // 画像の場合、プレビューを表示
+																																																																										            if (file.type.startsWith('image/')) {
+																																																																																																																                    const reader = new FileReader();
+																																																																																																																                    reader.onload = function(e) {
+																																																																																																																																																							                        html += `<br><img src="${e.target.result}" alt="プレビュー">`;
+																																																																																																																																																							                        preview.innerHTML = html;
+																																																																																																																																																							                    };
+																																																																																																																                    reader.readAsDataURL(file);
+																																																																																																																                } else {
+																																																																																																																																																							                preview.innerHTML = html;
+																																																																																																																																																							            }
+																																																																										        }
+
+																																				        async function uploadFile() {
+																																																																										            const token = document.getElementById('token').value.trim();
+																																																																										            const conversationId = document.getElementById('conversationId').value.trim();
+																																																																										            const message = document.getElementById('message').value.trim();
+																																																																										            const fileInput = document.getElementById('file');
+																																																																										            const responseDiv = document.getElementById('response');
+																																																																										            const infoDiv = document.getElementById('info');
+																																																																										            const sendBtn = document.getElementById('sendBtn');
+
+																																																																										            if (!token || !conversationId || !message || !fileInput.files[0]) {
+																																																																																																																                    alert('すべての項目を入力してください');
+																																																																																																																                    return;
+																																																																																																																                }
+
+																																																																										            if (isUploading) {
+																																																																																																																                    return;
+																																																																																																																                }
+
+																																																																										            const file = fileInput.files[0];
+																																																																										            const formData = new FormData();
+																																																																										            formData.append('message', message);
+																																																																										            formData.append('file', file);
+
+																																																																										            isUploading = true;
+																																																																										            sendBtn.disabled = true;
+																																																																										            responseDiv.textContent = 'アップロード中...';
+																																																																										            infoDiv.textContent = 'ファイルをアップロードしています...';
+
+																																																																										            try {
+																																																																																																																                    const response = await fetch(`/api/conversations/${conversationId}/messages/upload`, {
+																																																																																																																																																							                        method: 'POST',
+																																																																																																																																																							                        headers: {
+																																																																																																																																																																																															                        'Authorization': `Bearer ${token}`,
+																																																																																																																																																																																															                        'Accept': 'application/json',
+																																																																																																																																																																																															                    },
+																																																																																																																																																							                        body: formData
+																																																																																																																																																							                    });
+
+																																																																																																																                    if (!response.ok) {
+																																																																																																																																																							                        const errorText = await response.text();
+																																																																																																																																																							                        throw new Error(`HTTP ${response.status}: ${errorText}`);
+																																																																																																																																																							                    }
+
+																																																																																																																                    const data = await response.json();
+
+																																																																																																																                    if (data.success) {
+																																																																																																																																																							                        responseDiv.textContent = data.assistant_message.content;
+																																																																																																																																																							                        infoDiv.innerHTML = `
+																																			                               <strong>✅ 成功！</strong><br>
+																																			                               ファイル: ${data.attachment.file_name} (${(data.attachment.file_size / 1024).toFixed(2)} KB)<br>
+																																			                               トークン: ${data.tokens.total?.toLocaleString()} 
+																																			                               (入力: ${data.tokens.input?.toLocaleString()}, 出力: ${data.tokens.output?.toLocaleString()})<br>
+																																			                               コスト: ¥${data.cost.jpy.toFixed(2)}
+																																			                           `;
+																																																																																																																																																							                    } else {
+																																																																																																																																																																																														                        throw new Error(data.message || '不明なエラー');
+																																																																																																																																																																																														                    }
+
+																																																																																																																                } catch (error) {
+																																																																																																																																																							                console.error('Error:', error);
+																																																																																																																																																							                responseDiv.textContent = '';
+																																																																																																																																																							                infoDiv.innerHTML = '<strong style="color: red;">❌ エラー:</strong> ' + error.message;
+																																																																																																																																																							            } finally {
+																																																																																																																																																																																													                    isUploading = false;
+																																																																																																																																																																																													                    sendBtn.disabled = false;
+																																																																																																																																																																																													                }
+																																																																										        }
+																																				    </script>
+	</body>
+</html><!DOCTYPE html>
+<html lang="ja">
+	<head>
+		    <meta charset="UTF-8">
+		        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+			    <title>ファイルアップロードAPIテスト</title>
+			        <style>
+        body {
+		            font-family: sans-serif;
+			                max-width: 800px;
+					            margin: 50px auto;
+						                padding: 20px;
+								            background: #f5f5f5;
+									            }
+	        .container {
+			            background: white;
+				                border-radius: 8px;
+						            padding: 30px;
+							                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+									        }
+		        h1 {
+				            color: #333;
+					                margin-bottom: 30px;
+							        }
+			        .form-group {
+					            margin-bottom: 20px;
+						            }
+				        label {
+						            display: block;
+							                font-weight: bold;
+									            margin-bottom: 5px;
+										                color: #555;
+												        }
+					        input, textarea {
+							            width: 100%;
+								                padding: 10px;
+										            border: 1px solid #ddd;
+											                border-radius: 4px;
+													            font-size: 14px;
+														                box-sizing: border-box;
+																        }
+						        textarea {
+								            resize: vertical;
+									                font-family: sans-serif;
+											        }
+							        input[type="file"] {
+									            padding: 5px;
+										            }
+								        button {
+										            padding: 12px 30px;
+											                background: #2196F3;
+													            color: white;
+														                border: none;
+																            border-radius: 4px;
+																	                cursor: pointer;
+																			            font-size: 16px;
+																				                font-weight: bold;
+																						        }
+									        button:hover {
+											            background: #0b7dda;
+												            }
+										        button:disabled {
+												            background: #ccc;
+													                cursor: not-allowed;
+															        }
+											        #preview {
+													            margin-top: 20px;
+														                padding: 15px;
+																            border: 1px solid #ddd;
+																	                border-radius: 4px;
+																			            background: #f9f9f9;
+																				            }
+												        #preview img {
+														            max-width: 100%;
+															                border-radius: 4px;
+																	            margin-top: 10px;
+																		            }
+													        #response {
+															            min-height: 150px;
+																                border: 1px solid #ddd;
+																		            padding: 20px;
+																			                margin-top: 20px;
+																					            white-space: pre-wrap;
+																						                background: #f9f9f9;
+																								            border-radius: 4px;
+																									                line-height: 1.6;
+																											        }
+														        .info {
+																            color: #666;
+																	                font-size: 14px;
+																			            margin-top: 15px;
+																				                padding: 10px;
+																						            background: #e3f2fd;
+																							                border-radius: 4px;
+																									        }
+															        .file-info {
+																	            color: #666;
+																		                font-size: 13px;
+																				            margin-top: 5px;
+																					            }
+																    </style>
+	</head>
+	<body>
+		    <div class="container">
+			            <h1>📤 ファイルアップロードAPI テスト</h1>
+				            
+				            <div class="form-group">
+						                <label>トークン:</label>
+								            <input type="text" id="token" placeholder="Bearer トークンを入力">
+									            </div>
+										            
+										            <div class="form-group">
+												                <label>会話ID:</label>
+														            <input type="number" id="conversationId" placeholder="会話IDを入力">
+															            </div>
+																            
+																            <div class="form-group">
+																		                <label>メッセージ:</label>
+																				            <textarea id="message" rows="3" placeholder="メッセージを入力">このファイルについて説明してください。</textarea>
+																					            </div>
+																						            
+																						            <div class="form-group">
+																								                <label>ファイル:</label>
+																										            <input type="file" id="file" onchange="previewFile()" 
+																															                    accept=".txt,.md,.csv,.json,.py,.js,.html,.css,.png,.jpg,.jpeg,.gif,.webp,.pdf">
+																											                <div class="file-info">対応: テキスト、画像（PNG/JPG/GIF）、PDF（最大10MB）</div>
+																													        </div>
+																														        
+																														        <div id="preview"></div>
+																															        
+																															        <button id="sendBtn" onclick="uploadFile()">ファイルをアップロード</button>
+																																        
+																																        <div id="response"></div>
+																																	        
+																																	        <div class="info" id="info">トークン、会話ID、ファイルを選択してください</div>
+																																		    </div>
+
+																																		        <script>
+																																				        let isUploading = false;
+
+																																				        function previewFile() {
+																																																																										            const file = document.getElementById('file').files[0];
+																																																																										            const preview = document.getElementById('preview');
+																																																																										            
+																																																																										            if (!file) {
+																																																																																																																                    preview.innerHTML = '';
+																																																																																																																                    return;
+																																																																																																																                }
+
+																																																																										            const fileSize = (file.size / 1024).toFixed(2);
+																																																																										            let html = `<strong>選択したファイル:</strong><br>`;
+																																																																										            html += `名前: ${file.name}<br>`;
+																																																																										            html += `サイズ: ${fileSize} KB<br>`;
+																																																																										            html += `タイプ: ${file.type}`;
+
+																																																																										            // 画像の場合、プレビューを表示
+																																																																										            if (file.type.startsWith('image/')) {
+																																																																																																																                    const reader = new FileReader();
+																																																																																																																                    reader.onload = function(e) {
+																																																																																																																																																							                        html += `<br><img src="${e.target.result}" alt="プレビュー">`;
+																																																																																																																																																							                        preview.innerHTML = html;
+																																																																																																																																																							                    };
+																																																																																																																                    reader.readAsDataURL(file);
+																																																																																																																                } else {
+																																																																																																																																																							                preview.innerHTML = html;
+																																																																																																																																																							            }
+																																																																										        }
+
+																																				        async function uploadFile() {
+																																																																										            const token = document.getElementById('token').value.trim();
+																																																																										            const conversationId = document.getElementById('conversationId').value.trim();
+																																																																										            const message = document.getElementById('message').value.trim();
+																																																																										            const fileInput = document.getElementById('file');
+																																																																										            const responseDiv = document.getElementById('response');
+																																																																										            const infoDiv = document.getElementById('info');
+																																																																										            const sendBtn = document.getElementById('sendBtn');
+
+																																																																										            if (!token || !conversationId || !message || !fileInput.files[0]) {
+																																																																																																																                    alert('すべての項目を入力してください');
+																																																																																																																                    return;
+																																																																																																																                }
+
+																																																																										            if (isUploading) {
+																																																																																																																                    return;
+																																																																																																																                }
+
+																																																																										            const file = fileInput.files[0];
+																																																																										            const formData = new FormData();
+																																																																										            formData.append('message', message);
+																																																																										            formData.append('file', file);
+
+																																																																										            isUploading = true;
+																																																																										            sendBtn.disabled = true;
+																																																																										            responseDiv.textContent = 'アップロード中...';
+																																																																										            infoDiv.textContent = 'ファイルをアップロードしています...';
+
+																																																																										            try {
+																																																																																																																                    const response = await fetch(`/api/conversations/${conversationId}/messages/upload`, {
+																																																																																																																																																							                        method: 'POST',
+																																																																																																																																																							                        headers: {
+																																																																																																																																																																																															                        'Authorization': `Bearer ${token}`,
+																																																																																																																																																																																															                        'Accept': 'application/json',
+																																																																																																																																																																																															                    },
+																																																																																																																																																							                        body: formData
+																																																																																																																																																							                    });
+
+																																																																																																																                    if (!response.ok) {
+																																																																																																																																																							                        const errorText = await response.text();
+																																																																																																																																																							                        throw new Error(`HTTP ${response.status}: ${errorText}`);
+																																																																																																																																																							                    }
+
+																																																																																																																                    const data = await response.json();
+
+																																																																																																																                    if (data.success) {
+																																																																																																																																																							                        responseDiv.textContent = data.assistant_message.content;
+																																																																																																																																																							                        infoDiv.innerHTML = `
+																																			                               <strong>✅ 成功！</strong><br>
+																																			                               ファイル: ${data.attachment.file_name} (${(data.attachment.file_size / 1024).toFixed(2)} KB)<br>
+																																			                               トークン: ${data.tokens.total?.toLocaleString()} 
+																																			                               (入力: ${data.tokens.input?.toLocaleString()}, 出力: ${data.tokens.output?.toLocaleString()})<br>
+																																			                               コスト: ¥${data.cost.jpy.toFixed(2)}
+																																			                           `;
+																																																																																																																																																							                    } else {
+																																																																																																																																																																																														                        throw new Error(data.message || '不明なエラー');
+																																																																																																																																																																																														                    }
+
+																																																																																																																                } catch (error) {
+																																																																																																																																																							                console.error('Error:', error);
+																																																																																																																																																							                responseDiv.textContent = '';
+																																																																																																																																																							                infoDiv.innerHTML = '<strong style="color: red;">❌ エラー:</strong> ' + error.message;
+																																																																																																																																																							            } finally {
+																																																																																																																																																																																													                    isUploading = false;
+																																																																																																																																																																																													                    sendBtn.disabled = false;
+																																																																																																																																																																																													                }
+																																																																										        }
+																																				    </script>
+	</body>
+</html><!DOCTYPE html>
+<html lang="ja">
+	<head>
+		    <meta charset="UTF-8">
+		        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+			    <title>ファイルアップロードAPIテスト</title>
+			        <style>
+        body {
+		            font-family: sans-serif;
+			                max-width: 800px;
+					            margin: 50px auto;
+						                padding: 20px;
+								            background: #f5f5f5;
+									            }
+	        .container {
+			            background: white;
+				                border-radius: 8px;
+						            padding: 30px;
+							                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+									        }
+		        h1 {
+				            color: #333;
+					                margin-bottom: 30px;
+							        }
+			        .form-group {
+					            margin-bottom: 20px;
+						            }
+				        label {
+						            display: block;
+							                font-weight: bold;
+									            margin-bottom: 5px;
+										                color: #555;
+												        }
+					        input, textarea {
+							            width: 100%;
+								                padding: 10px;
+										            border: 1px solid #ddd;
+											                border-radius: 4px;
+													            font-size: 14px;
+														                box-sizing: border-box;
+																        }
+						        textarea {
+								            resize: vertical;
+									                font-family: sans-serif;
+											        }
+							        input[type="file"] {
+									            padding: 5px;
+										            }
+								        button {
+										            padding: 12px 30px;
+											                background: #2196F3;
+													            color: white;
+														                border: none;
+																            border-radius: 4px;
+																	                cursor: pointer;
+																			            font-size: 16px;
+																				                font-weight: bold;
+																						        }
+									        button:hover {
+											            background: #0b7dda;
+												            }
+										        button:disabled {
+												            background: #ccc;
+													                cursor: not-allowed;
+															        }
+											        #preview {
+													            margin-top: 20px;
+														                padding: 15px;
+																            border: 1px solid #ddd;
+																	                border-radius: 4px;
+																			            background: #f9f9f9;
+																				            }
+												        #preview img {
+														            max-width: 100%;
+															                border-radius: 4px;
+																	            margin-top: 10px;
+																		            }
+													        #response {
+															            min-height: 150px;
+																                border: 1px solid #ddd;
+																		            padding: 20px;
+																			                margin-top: 20px;
+																					            white-space: pre-wrap;
+																						                background: #f9f9f9;
+																								            border-radius: 4px;
+																									                line-height: 1.6;
+																											        }
+														        .info {
+																            color: #666;
+																	                font-size: 14px;
+																			            margin-top: 15px;
+																				                padding: 10px;
+																						            background: #e3f2fd;
+																							                border-radius: 4px;
+																									        }
+															        .file-info {
+																	            color: #666;
+																		                font-size: 13px;
+																				            margin-top: 5px;
+																					            }
+																    </style>
+	</head>
+	<body>
+		    <div class="container">
+			            <h1>📤 ファイルアップロードAPI テスト</h1>
+				            
+				            <div class="form-group">
+						                <label>トークン:</label>
+								            <input type="text" id="token" placeholder="Bearer トークンを入力">
+									            </div>
+										            
+										            <div class="form-group">
+												                <label>会話ID:</label>
+														            <input type="number" id="conversationId" placeholder="会話IDを入力">
+															            </div>
+																            
+																            <div class="form-group">
+																		                <label>メッセージ:</label>
+																				            <textarea id="message" rows="3" placeholder="メッセージを入力">このファイルについて説明してください。</textarea>
+																					            </div>
+																						            
+																						            <div class="form-group">
+																								                <label>ファイル:</label>
+																										            <input type="file" id="file" onchange="previewFile()" 
+																															                    accept=".txt,.md,.csv,.json,.py,.js,.html,.css,.png,.jpg,.jpeg,.gif,.webp,.pdf">
+																											                <div class="file-info">対応: テキスト、画像（PNG/JPG/GIF）、PDF（最大10MB）</div>
+																													        </div>
+																														        
+																														        <div id="preview"></div>
+																															        
+																															        <button id="sendBtn" onclick="uploadFile()">ファイルをアップロード</button>
+																																        
+																																        <div id="response"></div>
+																																	        
+																																	        <div class="info" id="info">トークン、会話ID、ファイルを選択してください</div>
+																																		    </div>
+
+																																		        <script>
+																																				        let isUploading = false;
+
+																																				        function previewFile() {
+																																																																										            const file = document.getElementById('file').files[0];
+																																																																										            const preview = document.getElementById('preview');
+																																																																										            
+																																																																										            if (!file) {
+																																																																																																																                    preview.innerHTML = '';
+																																																																																																																                    return;
+																																																																																																																                }
+
+																																																																										            const fileSize = (file.size / 1024).toFixed(2);
+																																																																										            let html = `<strong>選択したファイル:</strong><br>`;
+																																																																										            html += `名前: ${file.name}<br>`;
+																																																																										            html += `サイズ: ${fileSize} KB<br>`;
+																																																																										            html += `タイプ: ${file.type}`;
+
+																																																																										            // 画像の場合、プレビューを表示
+																																																																										            if (file.type.startsWith('image/')) {
+																																																																																																																                    const reader = new FileReader();
+																																																																																																																                    reader.onload = function(e) {
+																																																																																																																																																							                        html += `<br><img src="${e.target.result}" alt="プレビュー">`;
+																																																																																																																																																							                        preview.innerHTML = html;
+																																																																																																																																																							                    };
+																																																																																																																                    reader.readAsDataURL(file);
+																																																																																																																                } else {
+																																																																																																																																																							                preview.innerHTML = html;
+																																																																																																																																																							            }
+																																																																										        }
+
+																																				        async function uploadFile() {
+																																																																										            const token = document.getElementById('token').value.trim();
+																																																																										            const conversationId = document.getElementById('conversationId').value.trim();
+																																																																										            const message = document.getElementById('message').value.trim();
+																																																																										            const fileInput = document.getElementById('file');
+																																																																										            const responseDiv = document.getElementById('response');
+																																																																										            const infoDiv = document.getElementById('info');
+																																																																										            const sendBtn = document.getElementById('sendBtn');
+
+																																																																										            if (!token || !conversationId || !message || !fileInput.files[0]) {
+																																																																																																																                    alert('すべての項目を入力してください');
+																																																																																																																                    return;
+																																																																																																																                }
+
+																																																																										            if (isUploading) {
+																																																																																																																                    return;
+																																																																																																																                }
+
+																																																																										            const file = fileInput.files[0];
+																																																																										            const formData = new FormData();
+																																																																										            formData.append('message', message);
+																																																																										            formData.append('file', file);
+
+																																																																										            isUploading = true;
+																																																																										            sendBtn.disabled = true;
+																																																																										            responseDiv.textContent = 'アップロード中...';
+																																																																										            infoDiv.textContent = 'ファイルをアップロードしています...';
+
+																																																																										            try {
+																																																																																																																                    const response = await fetch(`/api/conversations/${conversationId}/messages/upload`, {
+																																																																																																																																																							                        method: 'POST',
+																																																																																																																																																							                        headers: {
+																																																																																																																																																																																															                        'Authorization': `Bearer ${token}`,
+																																																																																																																																																																																															                        'Accept': 'application/json',
+																																																																																																																																																																																															                    },
+																																																																																																																																																							                        body: formData
+																																																																																																																																																							                    });
+
+																																																																																																																                    if (!response.ok) {
+																																																																																																																																																							                        const errorText = await response.text();
+																																																																																																																																																							                        throw new Error(`HTTP ${response.status}: ${errorText}`);
+																																																																																																																																																							                    }
+
+																																																																																																																                    const data = await response.json();
+
+																																																																																																																                    if (data.success) {
+																																																																																																																																																							                        responseDiv.textContent = data.assistant_message.content;
+																																																																																																																																																							                        infoDiv.innerHTML = `
+																																			                               <strong>✅ 成功！</strong><br>
+																																			                               ファイル: ${data.attachment.file_name} (${(data.attachment.file_size / 1024).toFixed(2)} KB)<br>
+																																			                               トークン: ${data.tokens.total?.toLocaleString()} 
+																																			                               (入力: ${data.tokens.input?.toLocaleString()}, 出力: ${data.tokens.output?.toLocaleString()})<br>
+																																			                               コスト: ¥${data.cost.jpy.toFixed(2)}
+																																			                           `;
+																																																																																																																																																							                    } else {
+																																																																																																																																																																																														                        throw new Error(data.message || '不明なエラー');
+																																																																																																																																																																																														                    }
+
+																																																																																																																                } catch (error) {
+																																																																																																																																																							                console.error('Error:', error);
+																																																																																																																																																							                responseDiv.textContent = '';
+																																																																																																																																																							                infoDiv.innerHTML = '<strong style="color: red;">❌ エラー:</strong> ' + error.message;
+																																																																																																																																																							            } finally {
+																																																																																																																																																																																													                    isUploading = false;
+																																																																																																																																																																																													                    sendBtn.disabled = false;
+																																																																																																																																																																																													                }
+																																																																										        }
+																																				    </script>
+	</body>
+</html><!DOCTYPE html>
+<html lang="ja">
+	<head>
+		    <meta charset="UTF-8">
+		        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+			    <title>ファイルアップロードAPIテスト</title>
+			        <style>
+        body {
+		            font-family: sans-serif;
+			                max-width: 800px;
+					            margin: 50px auto;
+						                padding: 20px;
+								            background: #f5f5f5;
+									            }
+	        .container {
+			            background: white;
+				                border-radius: 8px;
+						            padding: 30px;
+							                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+									        }
+		        h1 {
+				            color: #333;
+					                margin-bottom: 30px;
+							        }
+			        .form-group {
+					            margin-bottom: 20px;
+						            }
+				        label {
+						            display: block;
+							                font-weight: bold;
+									            margin-bottom: 5px;
+										                color: #555;
+												        }
+					        input, textarea {
+							            width: 100%;
+								                padding: 10px;
+										            border: 1px solid #ddd;
+											                border-radius: 4px;
+													            font-size: 14px;
+														                box-sizing: border-box;
+																        }
+						        textarea {
+								            resize: vertical;
+									                font-family: sans-serif;
+											        }
+							        input[type="file"] {
+									            padding: 5px;
+										            }
+								        button {
+										            padding: 12px 30px;
+											                background: #2196F3;
+													            color: white;
+														                border: none;
+																            border-radius: 4px;
+																	                cursor: pointer;
+																			            font-size: 16px;
+																				                font-weight: bold;
+																						        }
+									        button:hover {
+											            background: #0b7dda;
+												            }
+										        button:disabled {
+												            background: #ccc;
+													                cursor: not-allowed;
+															        }
+											        #preview {
+													            margin-top: 20px;
+														                padding: 15px;
+																            border: 1px solid #ddd;
+																	                border-radius: 4px;
+																			            background: #f9f9f9;
+																				            }
+												        #preview img {
+														            max-width: 100%;
+															                border-radius: 4px;
+																	            margin-top: 10px;
+																		            }
+													        #response {
+															            min-height: 150px;
+																                border: 1px solid #ddd;
+																		            padding: 20px;
+																			                margin-top: 20px;
+																					            white-space: pre-wrap;
+																						                background: #f9f9f9;
+																								            border-radius: 4px;
+																									                line-height: 1.6;
+																											        }
+														        .info {
+																            color: #666;
+																	                font-size: 14px;
+																			            margin-top: 15px;
+																				                padding: 10px;
+																						            background: #e3f2fd;
+																							                border-radius: 4px;
+																									        }
+															        .file-info {
+																	            color: #666;
+																		                font-size: 13px;
+																				            margin-top: 5px;
+																					            }
+																    </style>
+	</head>
+	<body>
+		    <div class="container">
+			            <h1>📤 ファイルアップロードAPI テスト</h1>
+				            
+				            <div class="form-group">
+						                <label>トークン:</label>
+								            <input type="text" id="token" placeholder="Bearer トークンを入力">
+									            </div>
+										            
+										            <div class="form-group">
+												                <label>会話ID:</label>
+														            <input type="number" id="conversationId" placeholder="会話IDを入力">
+															            </div>
+																            
+																            <div class="form-group">
+																		                <label>メッセージ:</label>
+																				            <textarea id="message" rows="3" placeholder="メッセージを入力">このファイルについて説明してください。</textarea>
+																					            </div>
+																						            
+																						            <div class="form-group">
+																								                <label>ファイル:</label>
+																										            <input type="file" id="file" onchange="previewFile()" 
+																															                    accept=".txt,.md,.csv,.json,.py,.js,.html,.css,.png,.jpg,.jpeg,.gif,.webp,.pdf">
+																											                <div class="file-info">対応: テキスト、画像（PNG/JPG/GIF）、PDF（最大10MB）</div>
+																													        </div>
+																														        
+																														        <div id="preview"></div>
+																															        
+																															        <button id="sendBtn" onclick="uploadFile()">ファイルをアップロード</button>
+																																        
+																																        <div id="response"></div>
+																																	        
+																																	        <div class="info" id="info">トークン、会話ID、ファイルを選択してください</div>
+																																		    </div>
+
+																																		        <script>
+																																				        let isUploading = false;
+
+																																				        function previewFile() {
+																																																																										            const file = document.getElementById('file').files[0];
+																																																																										            const preview = document.getElementById('preview');
+																																																																										            
+																																																																										            if (!file) {
+																																																																																																																                    preview.innerHTML = '';
+																																																																																																																                    return;
+																																																																																																																                }
+
+																																																																										            const fileSize = (file.size / 1024).toFixed(2);
+																																																																										            let html = `<strong>選択したファイル:</strong><br>`;
+																																																																										            html += `名前: ${file.name}<br>`;
+																																																																										            html += `サイズ: ${fileSize} KB<br>`;
+																																																																										            html += `タイプ: ${file.type}`;
+
+																																																																										            // 画像の場合、プレビューを表示
+																																																																										            if (file.type.startsWith('image/')) {
+																																																																																																																                    const reader = new FileReader();
+																																																																																																																                    reader.onload = function(e) {
+																																																																																																																																																							                        html += `<br><img src="${e.target.result}" alt="プレビュー">`;
+																																																																																																																																																							                        preview.innerHTML = html;
+																																																																																																																																																							                    };
+																																																																																																																                    reader.readAsDataURL(file);
+																																																																																																																                } else {
+																																																																																																																																																							                preview.innerHTML = html;
+																																																																																																																																																							            }
+																																																																										        }
+
+																																				        async function uploadFile() {
+																																																																										            const token = document.getElementById('token').value.trim();
+																																																																										            const conversationId = document.getElementById('conversationId').value.trim();
+																																																																										            const message = document.getElementById('message').value.trim();
+																																																																										            const fileInput = document.getElementById('file');
+																																																																										            const responseDiv = document.getElementById('response');
+																																																																										            const infoDiv = document.getElementById('info');
+																																																																										            const sendBtn = document.getElementById('sendBtn');
+
+																																																																										            if (!token || !conversationId || !message || !fileInput.files[0]) {
+																																																																																																																                    alert('すべての項目を入力してください');
+																																																																																																																                    return;
+																																																																																																																                }
+
+																																																																										            if (isUploading) {
+																																																																																																																                    return;
+																																																																																																																                }
+
+																																																																										            const file = fileInput.files[0];
+																																																																										            const formData = new FormData();
+																																																																										            formData.append('message', message);
+																																																																										            formData.append('file', file);
+
+																																																																										            isUploading = true;
+																																																																										            sendBtn.disabled = true;
+																																																																										            responseDiv.textContent = 'アップロード中...';
+																																																																										            infoDiv.textContent = 'ファイルをアップロードしています...';
+
+																																																																										            try {
+																																																																																																																                    const response = await fetch(`/api/conversations/${conversationId}/messages/upload`, {
+																																																																																																																																																							                        method: 'POST',
+																																																																																																																																																							                        headers: {
+																																																																																																																																																																																															                        'Authorization': `Bearer ${token}`,
+																																																																																																																																																																																															                        'Accept': 'application/json',
+																																																																																																																																																																																															                    },
+																																																																																																																																																							                        body: formData
+																																																																																																																																																							                    });
+
+																																																																																																																                    if (!response.ok) {
+																																																																																																																																																							                        const errorText = await response.text();
+																																																																																																																																																							                        throw new Error(`HTTP ${response.status}: ${errorText}`);
+																																																																																																																																																							                    }
+
+																																																																																																																                    const data = await response.json();
+
+																																																																																																																                    if (data.success) {
+																																																																																																																																																							                        responseDiv.textContent = data.assistant_message.content;
+																																																																																																																																																							                        infoDiv.innerHTML = `
+																																			                               <strong>✅ 成功！</strong><br>
+																																			                               ファイル: ${data.attachment.file_name} (${(data.attachment.file_size / 1024).toFixed(2)} KB)<br>
+																																			                               トークン: ${data.tokens.total?.toLocaleString()} 
+																																			                               (入力: ${data.tokens.input?.toLocaleString()}, 出力: ${data.tokens.output?.toLocaleString()})<br>
+																																			                               コスト: ¥${data.cost.jpy.toFixed(2)}
+																																			                           `;
+																																																																																																																																																							                    } else {
+																																																																																																																																																																																														                        throw new Error(data.message || '不明なエラー');
+																																																																																																																																																																																														                    }
+
+																																																																																																																                } catch (error) {
+																																																																																																																																																							                console.error('Error:', error);
+																																																																																																																																																							                responseDiv.textContent = '';
+																																																																																																																																																							                infoDiv.innerHTML = '<strong style="color: red;">❌ エラー:</strong> ' + error.message;
+																																																																																																																																																							            } finally {
+																																																																																																																																																																																													                    isUploading = false;
+																																																																																																																																																																																													                    sendBtn.disabled = false;
+																																																																																																																																																																																													                }
+																																																																										        }
+																																				    </script>
+	</body>
+</html>
