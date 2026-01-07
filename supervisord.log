@@ -1,0 +1,30 @@
+2025-12-30 07:10:38,026 INFO Set uid to user 0 succeeded
+2025-12-30 07:10:38,033 INFO supervisord started with pid 1
+2025-12-30 07:10:39,044 INFO spawned: 'nginx' with pid 7
+2025-12-30 07:10:39,053 INFO spawned: 'php-fpm' with pid 8
+2025-12-30 07:10:39,090 WARN exited: nginx (exit status 1; not expected)
+2025-12-30 07:10:40,325 INFO spawned: 'nginx' with pid 11
+2025-12-30 07:10:40,326 INFO success: php-fpm entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-12-30 07:10:40,336 WARN exited: nginx (exit status 1; not expected)
+2025-12-30 07:10:42,341 INFO spawned: 'nginx' with pid 12
+2025-12-30 07:10:42,363 WARN exited: nginx (exit status 1; not expected)
+2025-12-30 07:10:45,373 INFO spawned: 'nginx' with pid 13
+2025-12-30 07:10:45,384 WARN exited: nginx (exit status 1; not expected)
+2025-12-30 07:10:46,385 INFO gave up: nginx entered FATAL state, too many start retries too quickly
+2025-12-30 07:16:15,289 WARN received SIGQUIT indicating exit request
+2025-12-30 07:16:15,311 INFO waiting for php-fpm to die
+2025-12-30 07:20:32,441 INFO Set uid to user 0 succeeded
+2025-12-30 07:20:32,445 INFO supervisord started with pid 1
+2025-12-30 07:20:33,451 INFO spawned: 'nginx' with pid 7
+2025-12-30 07:20:33,469 INFO spawned: 'php-fpm' with pid 8
+2025-12-30 07:20:33,488 WARN exited: nginx (exit status 1; not expected)
+2025-12-30 07:20:34,656 INFO spawned: 'nginx' with pid 11
+2025-12-30 07:20:34,659 INFO success: php-fpm entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-12-30 07:20:34,672 WARN exited: nginx (exit status 1; not expected)
+2025-12-30 07:20:36,686 INFO spawned: 'nginx' with pid 12
+2025-12-30 07:20:36,696 WARN exited: nginx (exit status 1; not expected)
+2025-12-30 07:20:39,739 INFO spawned: 'nginx' with pid 13
+2025-12-30 07:20:39,749 WARN exited: nginx (exit status 1; not expected)
+2025-12-30 07:20:40,751 INFO gave up: nginx entered FATAL state, too many start retries too quickly
+2025-12-30 07:28:01,219 WARN received SIGQUIT indicating exit request
+2025-12-30 07:28:01,268 INFO waiting for php-fpm to die
