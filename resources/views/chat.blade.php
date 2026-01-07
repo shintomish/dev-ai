@@ -1154,6 +1154,91 @@
                 </div>
             </div>
 
+            <!-- タグメニュー -->
+            @if($conversation)
+            <div id="tagMenu" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div class="bg-white rounded-lg p-6 w-96" style="background: var(--bg-primary);">
+                    <h3 class="text-lg font-bold mb-4" style="color: var(--text-primary);">タグの編集</h3>
+                    
+                    <div class="space-y-4">
+                        <!-- 既存のタグ -->
+                        @foreach($conversation->tags as $tag)
+                        <label class="flex items-center gap-2">
+                            <input type="checkbox" 
+                                value="{{ $tag->id }}" 
+                                checked
+                                onchange="handleTagChange({{ $conversation->id }}, {{ $tag->id }}, this.checked)"
+                                class="rounded">
+                            <span style="color: var(--text-primary);">{{ $tag->name }}</span>
+                        </label>
+                        @endforeach
+                        
+                        <!-- 新しいタグを追加 -->
+                        <div class="mt-4 pt-4 border-t" style="border-color: var(--border-color);">
+                            <label class="block text-sm font-medium mb-2" style="color: var(--text-primary);">新しいタグ</label>
+                            <div class="flex gap-2">
+                                <input type="text" 
+                                    id="newTagInput"
+                                    placeholder="タグ名を入力"
+                                    class="flex-1 px-3 py-2 border rounded-lg"
+                                    style="background: var(--bg-secondary); color: var(--text-primary); border-color: var(--border-color);">
+                                <button onclick="addNewTag()"
+                                        class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                                    追加
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 flex justify-end">
+                        <button onclick="toggleTagMenu()"
+                                class="px-4 py-2 border rounded-lg"
+                                style="background: var(--bg-secondary); color: var(--text-primary); border-color: var(--border-color);">
+                            閉じる
+                        </button>
+                    </div>
+                </div>
+            </div>
+            @endif
+
+            <!-- エクスポートメニュー -->
+            @if($conversation)
+            <div id="exportMenu" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div class="bg-white rounded-lg p-6 w-96" style="background: var(--bg-primary);">
+                    <h3 class="text-lg font-bold mb-4" style="color: var(--text-primary);">エクスポート</h3>
+                    
+                    <div class="space-y-3">
+                        <a href="{{ route('conversations.export', ['conversation' => $conversation->id, 'format' => 'markdown']) }}"
+                        class="block px-4 py-3 rounded-lg hover:bg-gray-100 transition"
+                        style="background: var(--bg-secondary); color: var(--text-primary);"
+                        onclick="toggleExportMenu()">
+                            📄 Markdown形式でエクスポート
+                        </a>
+                        <a href="{{ route('conversations.export', ['conversation' => $conversation->id, 'format' => 'json']) }}"
+                        class="block px-4 py-3 rounded-lg hover:bg-gray-100 transition"
+                        style="background: var(--bg-secondary); color: var(--text-primary);"
+                        onclick="toggleExportMenu()">
+                            📋 JSON形式でエクスポート
+                        </a>
+                        <a href="{{ route('conversations.export', ['conversation' => $conversation->id, 'format' => 'text']) }}"
+                        class="block px-4 py-3 rounded-lg hover:bg-gray-100 transition"
+                        style="background: var(--bg-secondary); color: var(--text-primary);"
+                        onclick="toggleExportMenu()">
+                            📝 テキスト形式でエクスポート
+                        </a>
+                    </div>
+                    
+                    <div class="mt-6 flex justify-end">
+                        <button onclick="toggleExportMenu()"
+                                class="px-4 py-2 border rounded-lg"
+                                style="background: var(--bg-secondary); color: var(--text-primary); border-color: var(--border-color);">
+                            閉じる
+                        </button>
+                    </div>
+                </div>
+            </div>
+            @endif
+
             <!-- チャットメッセージ -->
             <div id="chatMessages">
                 @foreach($messages as $message)
