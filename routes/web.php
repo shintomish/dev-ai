@@ -5,6 +5,7 @@ use App\Http\Controllers\ChatController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\ProfileController;
+use Illuminate\Support\Facades\Broadcast;
 
 /*
 |--------------------------------------------------------------------------
@@ -70,5 +71,7 @@ Route::middleware(['web', 'auth'])->group(function () {
     Route::post('/chat/send-stream', [ChatController::class, 'sendStream'])->name('chat.send.stream');
 
 });
+// ========== ブロードキャスティング認証 ==========
+Broadcast::routes(['middleware' => ['web', 'auth:sanctum']]);
 
 require __DIR__.'/auth.php';

@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket（Reverb）テスト</title>
+    <script src="https://cdn.jsdelivr.net/npm/pusher-js@8.4.0-rc2/dist/web/pusher.min.js"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 1000px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #555;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 12px 30px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button.disconnect {
+            background: #f44336;
+        }
+        #status {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .status-disconnected {
+            background: #ffebee;
+            color: #c62828;
+        }
+        .status-connected {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        #events {
+            margin-top: 30px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .event {
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            border-left: 4px solid #2196F3;
+            background: #f9f9f9;
+        }
+        .event-message {
+            border-left-color: #4CAF50;
+        }
+        .event-conversation {
+            border-left-color: #FF9800;
+        }
+        .event-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .event-time {
+            font-size: 12px;
+            color: #666;
+        }
+        .event-data {
+            margin-top: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔌 WebSocket（Reverb）テスト</h1>
+        
+        <div class="form-group">
+            <label>トークン:</label>
+            <input type="text" id="token" placeholder="Bearer トークンを入力">
+        </div>
+
+        <div class="form-group">
+            <label>ユーザーID:</label>
+            <input type="number" id="userId" placeholder="ユーザーIDを入力">
+        </div>
+
+        <div class="form-group">
+            <label>会話ID（オプション）:</label>
+            <input type="number" id="conversationId" placeholder="特定の会話を監視する場合">
+        </div>
+
+        <button onclick="connect()">接続</button>
+        <button class="disconnect" onclick="disconnect()">切断</button>
+
+        <div id="status" class="status-disconnected">
+            🔴 未接続
+        </div>
+
+        <h2>受信イベント</h2>
+        <div id="events"></div>
+    </div>
+
+    <script>
+        let pusher = null;
+        let userChannel = null;
+        let conversationChannel = null;
+
+        function connect() {
+            const token = document.getElementById('token').value.trim();
+            const userId = document.getElementById('userId').value.trim();
+            const conversationId = document.getElementById('conversationId').value.trim();
+
+            if (!token || !userId) {
+                alert('トークンとユーザーIDを入力してください');
+                return;
+            }
+
+            // Pusher（Reverb）に接続
+            pusher = new Pusher('uiwjychlclhizziqczwa', {
+                cluster: 'mt1',
+                wsHost: 'localhost',
+                wsPort: 8080,
+                wssPort: 8080,
+                forceTLS: false,
+                encrypted: false,
+                disableStats: true,
+                enabledTransports: ['ws', 'wss'],
+                authEndpoint: 'http://localhost:8000/api/broadcasting/auth',
+                auth: {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json',
+                    }
+                }
+            });
+
+            // 接続状態の監視
+            pusher.connection.bind('connected', function() {
+                updateStatus('connected', '🟢 接続中');
+                addEvent('system', '接続成功', { message: 'Reverbサーバーに接続しました' });
+            });
+
+            pusher.connection.bind('disconnected', function() {
+                updateStatus('disconnected', '🔴 切断');
+            });
+
+            pusher.connection.bind('error', function(err) {
+                addEvent('error', 'エラー', { error: err.message || err });
+            });
+
+            // ユーザーチャンネルを購読
+            userChannel = pusher.subscribe(`private-user.${userId}`);
+            
+            userChannel.bind('pusher:subscription_succeeded', function() {
+                addEvent('system', 'チャンネル購読成功', { channel: `user.${userId}` });
+            });
+
+            userChannel.bind('pusher:subscription_error', function(status) {
+                addEvent('error', 'チャンネル購読エラー', { status: status });
+            });
+
+            // 会話作成イベント
+            userChannel.bind('conversation.created', function(data) {
+                addEvent('conversation', '新しい会話が作成されました', data);
+            });
+
+            // 会話チャンネルを購読（会話IDが指定されている場合）
+            if (conversationId) {
+                conversationChannel = pusher.subscribe(`private-conversation.${conversationId}`);
+                
+                conversationChannel.bind('pusher:subscription_succeeded', function() {
+                    addEvent('system', 'チャンネル購読成功', { channel: `conversation.${conversationId}` });
+                });
+
+                // メッセージ作成イベント
+                conversationChannel.bind('message.created', function(data) {
+                    addEvent('message', '新しいメッセージが届きました', data);
+                });
+            }
+        }
+
+        function disconnect() {
+            if (pusher) {
+                pusher.disconnect();
+                updateStatus('disconnected', '🔴 未接続');
+                addEvent('system', '切断', { message: 'Reverbサーバーから切断しました' });
+            }
+        }
+
+        function updateStatus(status, text) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = `status-${status}`;
+            statusDiv.textContent = text;
+        }
+
+        function addEvent(type, title, data) {
+            const eventsDiv = document.getElementById('events');
+            const eventDiv = document.createElement('div');
+            eventDiv.className = `event event-${type}`;
+            
+            const now = new Date().toLocaleTimeString('ja-JP');
+            
+            eventDiv.innerHTML = `
+                <div class="event-title">${title}</div>
+                <div class="event-time">${now}</div>
+                <div class="event-data">${JSON.stringify(data, null, 2)}</div>
+            `;
+            
+            eventsDiv.insertBefore(eventDiv, eventsDiv.firstChild);
+        }
+    </script>
+</body>
+</html>
+

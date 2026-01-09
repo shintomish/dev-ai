@@ -8,6 +8,7 @@ use App\Models\Message;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use App\Events\MessageCreated;
 
 class MessageController extends Controller
 {
@@ -131,6 +132,9 @@ class MessageController extends Controller
                 'total_tokens' => $totalTokens,
             ]);
 
+            // ★ ここにイベント発火を追加
+            event(new MessageCreated($assistantMessage));
+            
             // コスト計算
             $inputCost = ($inputTokens ?? 0) / 1_000_000 * 3;
             $outputCost = ($outputTokens ?? 0) / 1_000_000 * 15;

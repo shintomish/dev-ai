@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ConversationController;
 use App\Http\Controllers\Api\MessageController;
+use Illuminate\Support\Facades\Broadcast;
 
 /*
 |--------------------------------------------------------------------------
@@ -15,6 +16,9 @@ use App\Http\Controllers\Api\MessageController;
 // 認証不要のルート
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+
+// ブロードキャスティング認証
+Broadcast::routes(['middleware' => ['auth:sanctum']]);
 
 // 認証が必要なルート
 Route::middleware('auth:sanctum')->group(function () {

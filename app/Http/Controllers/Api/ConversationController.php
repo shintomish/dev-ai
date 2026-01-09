@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Conversation;
 use Illuminate\Http\Request;
+use App\Events\ConversationCreated;
 
 class ConversationController extends Controller
 {
@@ -55,6 +56,9 @@ class ConversationController extends Controller
             'mode' => $request->mode,
         ]);
 
+        // ★ ここにイベント発火を追加
+        event(new ConversationCreated($conversation));
+        
         return response()->json([
             'success' => true,
             'conversation' => [

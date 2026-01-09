@@ -10,6 +10,8 @@ services:
     volumes:
       - ./:/var/www/html
       - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    ports:
+      - "8080:8080"
     networks:
       - dev_ai_network
     extra_hosts:
