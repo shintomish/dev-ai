@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>検索APIテスト</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 1000px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ddd;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 16px;
+            color: #666;
+            border-bottom: 3px solid transparent;
+        }
+        .tab.active {
+            color: #2196F3;
+            border-bottom-color: #2196F3;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #555;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        .filter-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        button {
+            padding: 12px 30px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #0b7dda;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        #results {
+            margin-top: 30px;
+        }
+        .result-item {
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            background: #f9f9f9;
+        }
+        .result-item.conversation {
+            border-left: 4px solid #4CAF50;
+        }
+        .result-item.message {
+            border-left: 4px solid #2196F3;
+        }
+        .result-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .result-meta {
+            font-size: 13px;
+            color: #666;
+        }
+        .result-content {
+            margin-top: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+        }
+        .info {
+            color: #666;
+            font-size: 14px;
+            padding: 10px;
+            background: #e3f2fd;
+            border-radius: 4px;
+            margin-top: 15px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            margin-right: 5px;
+        }
+        .badge-dev {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        .badge-study {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+        .badge-favorite {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 検索API テスト</h1>
+        
+        <div class="form-group">
+            <label>トークン:</label>
+            <input type="text" id="token" placeholder="Bearer トークンを入力">
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('all')">全体検索</button>
+            <button class="tab" onclick="switchTab('conversations')">会話検索</button>
+            <button class="tab" onclick="switchTab('messages')">メッセージ検索</button>
+        </div>
+
+        <!-- 全体検索 -->
+        <div id="tab-all" class="tab-content active">
+            <div class="form-group">
+                <label>検索キーワード:</label>
+                <input type="text" id="keyword-all" placeholder="キーワードを入力">
+            </div>
+            <button onclick="searchAll()">全体検索</button>
+        </div>
+
+        <!-- 会話検索 -->
+        <div id="tab-conversations" class="tab-content">
+            <div class="form-group">
+                <label>検索キーワード:</label>
+                <input type="text" id="keyword-conv" placeholder="会話タイトルを入力">
+            </div>
+            <div class="filter-row">
+                <div class="form-group">
+                    <label>モード:</label>
+                    <select id="mode">
+                        <option value="">すべて</option>
+                        <option value="dev">Dev</option>
+                        <option value="study">Study</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>お気に入り:</label>
+                    <select id="favorite">
+                        <option value="">すべて</option>
+                        <option value="true">お気に入りのみ</option>
+                        <option value="false">お気に入り以外</option>
+                    </select>
+                </div>
+            </div>
+            <button onclick="searchConversations()">会話を検索</button>
+        </div>
+
+        <!-- メッセージ検索 -->
+        <div id="tab-messages" class="tab-content">
+            <div class="form-group">
+                <label>検索キーワード:</label>
+                <input type="text" id="keyword-msg" placeholder="メッセージ内容を入力">
+            </div>
+            <div class="filter-row">
+                <div class="form-group">
+                    <label>ロール:</label>
+                    <select id="role">
+                        <option value="">すべて</option>
+                        <option value="user">ユーザー</option>
+                        <option value="assistant">アシスタント</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>ソート順:</label>
+                    <select id="sort">
+                        <option value="desc">新しい順</option>
+                        <option value="asc">古い順</option>
+                    </select>
+                </div>
+            </div>
+            <button onclick="searchMessages()">メッセージを検索</button>
+        </div>
+
+        <div id="results"></div>
+        <div class="info" id="info">トークンを入力して検索してください</div>
+    </div>
+
+    <script>
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById('tab-' + tab).classList.add('active');
+        }
+
+        async function searchAll() {
+            const token = document.getElementById('token').value.trim();
+            const keyword = document.getElementById('keyword-all').value.trim();
+            
+            if (!token || !keyword) {
+                alert('トークンとキーワードを入力してください');
+                return;
+            }
+
+            await performSearch(`/api/search/all?q=${encodeURIComponent(keyword)}`, token);
+        }
+
+        async function searchConversations() {
+            const token = document.getElementById('token').value.trim();
+            const keyword = document.getElementById('keyword-conv').value.trim();
+            const mode = document.getElementById('mode').value;
+            const favorite = document.getElementById('favorite').value;
+            
+            if (!token) {
+                alert('トークンを入力してください');
+                return;
+            }
+
+            let url = '/api/search/conversations?';
+            if (keyword) url += `q=${encodeURIComponent(keyword)}&`;
+            if (mode) url += `mode=${mode}&`;
+            if (favorite) url += `favorite=${favorite}&`;
+
+            await performSearch(url, token);
+        }
+
+        async function searchMessages() {
+            const token = document.getElementById('token').value.trim();
+            const keyword = document.getElementById('keyword-msg').value.trim();
+            const role = document.getElementById('role').value;
+            const sort = document.getElementById('sort').value;
+            
+            if (!token || !keyword) {
+                alert('トークンとキーワードを入力してください');
+                return;
+            }
+
+            let url = `/api/search/messages?q=${encodeURIComponent(keyword)}`;
+            if (role) url += `&role=${role}`;
+            if (sort) url += `&sort_order=${sort}`;
+
+            await performSearch(url, token);
+        }
+
+        async function performSearch(url, token) {
+            const resultsDiv = document.getElementById('results');
+            const infoDiv = document.getElementById('info');
+            
+            resultsDiv.innerHTML = '<p>検索中...</p>';
+            infoDiv.textContent = '検索中...';
+
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json',
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                displayResults(data);
+            } catch (error) {
+                resultsDiv.innerHTML = '';
+                infoDiv.innerHTML = `<strong style="color: red;">❌ エラー:</strong> ${error.message}`;
+            }
+        }
+
+        function displayResults(data) {
+            const resultsDiv = document.getElementById('results');
+            const infoDiv = document.getElementById('info');
+
+            if (data.results) {
+                // 全体検索
+                if (data.results.length === 0) {
+                    resultsDiv.innerHTML = '<p>結果が見つかりませんでした</p>';
+                } else {
+                    resultsDiv.innerHTML = data.results.map(item => {
+                        if (item.type === 'conversation') {
+                            return `
+                                <div class="result-item conversation">
+                                    <div class="result-title">📁 ${item.title}</div>
+                                    <div class="result-meta">
+                                        <span class="badge badge-${item.mode}">${item.mode}</span>
+                                        ${item.is_favorite ? '<span class="badge badge-favorite">⭐ お気に入り</span>' : ''}
+                                        ${item.tags.map(t => `<span class="badge">#${t}</span>`).join('')}
+                                        <br>作成: ${new Date(item.created_at).toLocaleString('ja-JP')}
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            return `
+                                <div class="result-item message">
+                                    <div class="result-title">💬 ${item.conversation_title}</div>
+                                    <div class="result-meta">
+                                        ${item.role === 'user' ? '👤 ユーザー' : '🤖 アシスタント'} | 
+                                        ${new Date(item.created_at).toLocaleString('ja-JP')}
+                                    </div>
+                                    <div class="result-content">${item.content}</div>
+                                </div>
+                            `;
+                        }
+                    }).join('');
+                }
+                infoDiv.innerHTML = `✅ ${data.total_results}件の結果 (会話: ${data.conversations_found}, メッセージ: ${data.messages_found})`;
+            } else if (data.data) {
+                // 会話検索 or メッセージ検索
+                const items = Array.isArray(data.data) ? data.data : data.data.data || [];
+                
+                if (items.length === 0) {
+                    resultsDiv.innerHTML = '<p>結果が見つかりませんでした</p>';
+                } else {
+                    resultsDiv.innerHTML = items.map(item => {
+                        if (item.conversation_title) {
+                            // メッセージ
+                            return `
+                                <div class="result-item message">
+                                    <div class="result-title">💬 ${item.conversation_title}</div>
+                                    <div class="result-meta">
+                                        ${item.role === 'user' ? '👤 ユーザー' : '🤖 アシスタント'} | 
+                                        ${new Date(item.created_at).toLocaleString('ja-JP')}
+                                    </div>
+                                    <div class="result-content">${item.content.substring(0, 300)}...</div>
+                                </div>
+                            `;
+                        } else {
+                            // 会話
+                            return `
+                                <div class="result-item conversation">
+                                    <div class="result-title">📁 ${item.title}</div>
+                                    <div class="result-meta">
+                                        <span class="badge badge-${item.mode}">${item.mode}</span>
+                                        ${item.is_favorite ? '<span class="badge badge-favorite">⭐ お気に入り</span>' : ''}
+                                        ${item.tags.map(t => `<span class="badge">#${t}</span>`).join('')}
+                                        <br>メッセージ数: ${item.message_count} | トークン: ${item.total_tokens?.toLocaleString() || 0}
+                                        <br>作成: ${new Date(item.created_at).toLocaleString('ja-JP')}
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    }).join('');
+                }
+                
+                if (data.pagination) {
+                    infoDiv.innerHTML = `✅ ${data.pagination.total}件の結果 (${data.pagination.current_page}/${data.pagination.last_page}ページ)`;
+                } else {
+                    infoDiv.innerHTML = `✅ ${items.length}件の結果`;
+                }
+            }
+        }
+    </script>
+</body>
+</html>
+

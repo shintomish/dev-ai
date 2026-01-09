@@ -544,4 +544,79 @@ class MessageController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * メッセージ検索
+     */
+    public function searchMessages(Request $request)
+    {
+        $keyword = $request->query('q');
+        
+        if (!$keyword) {
+            return response()->json([
+                'success' => false,
+                'message' => '検索キーワードを指定してください',
+            ], 400);
+        }
+
+        // ユーザーの会話IDを取得
+        $conversationIds = Conversation::where('user_id', $request->user()->id)
+            ->pluck('id');
+
+        $query = Message::whereIn('conversation_id', $conversationIds)
+            ->where('content', 'like', "%{$keyword}%");
+
+        // ロール（user/assistant）で絞り込み
+        if ($request->has('role')) {
+            $query->where('role', $request->query('role'));
+        }
+
+        // 会話IDで絞り込み
+        if ($request->has('conversation_id')) {
+            $query->where('conversation_id', $request->query('conversation_id'));
+        }
+
+        // 日付範囲で絞り込み
+        if ($request->has('from')) {
+            $query->where('created_at', '>=', $request->query('from'));
+        }
+        if ($request->has('to')) {
+            $query->where('created_at', '<=', $request->query('to'));
+        }
+
+        // ソート順
+        $sortOrder = $request->query('sort_order', 'desc');
+        $query->orderBy('created_at', $sortOrder);
+
+        // ページネーション
+        $perPage = $request->query('per_page', 20);
+        $messages = $query->with('conversation')->paginate($perPage);
+
+        return response()->json([
+            'success' => true,
+            'keyword' => $keyword,
+            'data' => $messages->map(function ($message) {
+                return [
+                    'id' => $message->id,
+                    'conversation_id' => $message->conversation_id,
+                    'conversation_title' => $message->conversation->title,
+                    'role' => $message->role,
+                    'content' => $message->content,
+                    'input_tokens' => $message->input_tokens,
+                    'output_tokens' => $message->output_tokens,
+                    'total_tokens' => $message->total_tokens,
+                    'created_at' => $message->created_at,
+                ];
+            }),
+            'pagination' => [
+                'total' => $messages->total(),
+                'per_page' => $messages->perPage(),
+                'current_page' => $messages->currentPage(),
+                'last_page' => $messages->lastPage(),
+                'from' => $messages->firstItem(),
+                'to' => $messages->lastItem(),
+            ],
+        ]);
+    }
+
 }

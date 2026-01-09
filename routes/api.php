@@ -41,4 +41,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // 統計関連
     Route::get('/stats/monthly', [ConversationController::class, 'monthlyStats']);
     Route::get('/stats/detailed', [ConversationController::class, 'detailedStats']);
+
+    // 検索関連（NEW!）
+    Route::get('/search/conversations', [ConversationController::class, 'searchConversations']);
+    Route::get('/search/messages', [MessageController::class, 'searchMessages']);
+    Route::get('/search/all', [ConversationController::class, 'searchAll']);
+
 });
