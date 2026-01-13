@@ -671,33 +671,79 @@ public function export(Conversation $conversation, Request $request)
     /**
      * タグを更新（一括同期）
      */
-    public function updateTags(Conversation $conversation, Request $request)
+    public function updateTags(Request $request, Conversation $conversation)
     {
         // 自分の会話かチェック
         if ($conversation->user_id !== auth()->id()) {
-            abort(403, 'この会話にアクセスする権限がありません');
+            abort(403);
         }
 
+        // バリデーション
         $request->validate([
-            'tags' => 'array',
+            'tags' => 'nullable|array',
             'tags.*' => 'string|max:50',
+            'new_tag' => 'nullable|string|max:50',
+            'color' => 'nullable|string|max:20',
         ]);
 
+        // タグが空の場合はすべて削除
+        if (empty($request->tags) || !$request->has('tags')) {
+            $conversation->tags()->detach();
+            
+            return response()->json([
+                'success' => true,
+                'tags' => [],
+                'message' => 'すべてのタグを削除しました',
+            ]);
+        }
+
         $tagIds = [];
-        foreach ($request->input('tags', []) as $tagName) {
-            $tagName = trim($tagName);
-            if (!empty($tagName)) {
-                $tag = \App\Models\Tag::firstOrCreate(['name' => $tagName]);
+        $newTagName = $request->input('new_tag');
+        $color = $request->input('color', $this->generateRandomColor());
+        
+        foreach ($request->tags as $tagName) {
+            // ユーザー専用のタグを検索
+            $tag = \App\Models\Tag::where('user_id', auth()->id())
+                ->where('name', $tagName)
+                ->first();
+            
+            if ($tag) {
+                // 既存のタグ
+                // 新しく追加されたタグの場合は色を更新
+                if ($tagName === $newTagName && $color) {
+                    $tag->color = $color;
+                    $tag->save();
+                }
+                $tagIds[] = $tag->id;
+            } else {
+                // 新しいタグ（指定された色を使用）
+                $isNewTag = ($tagName === $newTagName);
+                $tagColor = $isNewTag ? $color : $this->generateRandomColor();
+                
+                $tag = \App\Models\Tag::create([
+                    'user_id' => auth()->id(),
+                    'name' => $tagName,
+                    'color' => $tagColor,
+                ]);
+                
                 $tagIds[] = $tag->id;
             }
         }
 
+        // 会話にタグを紐付け
         $conversation->tags()->sync($tagIds);
 
         return response()->json([
             'success' => true,
             'tags' => $conversation->fresh()->tags,
+            'message' => 'タグを更新しました',
         ]);
+    }
+
+    private function generateRandomColor()
+    {
+        $colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#6366F1', '#14B8A6'];
+        return $colors[array_rand($colors)];
     }
 
     /**

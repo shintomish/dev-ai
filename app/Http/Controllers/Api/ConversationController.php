@@ -150,7 +150,6 @@ class ConversationController extends Controller
      */
     public function updateTags(Request $request, Conversation $conversation)
     {
-        // 自分の会話かチェック
         if ($conversation->user_id !== $request->user()->id) {
             return response()->json([
                 'success' => false,
@@ -163,20 +162,33 @@ class ConversationController extends Controller
             'tags.*' => 'string|max:50',
         ]);
 
-        // 既存のタグを取得または作成
         $tagIds = [];
         foreach ($request->tags as $tagName) {
-            $tag = \App\Models\Tag::firstOrCreate(['name' => $tagName]);
+            // ユーザー専用のタグを取得または作成
+            $tag = \App\Models\Tag::firstOrCreate(
+                [
+                    'user_id' => $request->user()->id,
+                    'name' => $tagName,
+                ],
+                [
+                    'color' => $this->generateRandomColor(),
+                ]
+            );
             $tagIds[] = $tag->id;
         }
 
-        // タグを同期
         $conversation->tags()->sync($tagIds);
 
         return response()->json([
             'success' => true,
-            'tags' => $conversation->tags->pluck('name'),
+            'tags' => $conversation->tags,
         ]);
+    }
+
+    private function generateRandomColor()
+    {
+        $colors = ['blue', 'green', 'yellow', 'red', 'purple', 'pink', 'indigo'];
+        return $colors[array_rand($colors)];
     }
 
     /**

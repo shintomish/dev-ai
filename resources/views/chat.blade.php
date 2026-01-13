@@ -997,9 +997,17 @@
                                     </div>
                                     @if($conv->tags->isNotEmpty())
                                         <div class="flex flex-wrap gap-1 mt-2">
-                                            @foreach($conv->tags as $tag)
-                                                <span class="tag">{{ $tag->name }}</span>
-                                            @endforeach
+                                            @if($conv->tags->count() > 0)
+                                                <div class="flex flex-wrap gap-1 mt-2">
+                                                    @foreach($conv->tags as $tag)
+                                                        <span class="px-2 py-1 text-xs rounded flex items-center gap-1"
+                                                            style="background-color: {{ $tag->color }}20; color: {{ $tag->color }}; border: 1px solid {{ $tag->color }};">
+                                                            <span class="w-2 h-2 rounded-full" style="background-color: {{ $tag->color }};"></span>
+                                                            {{ $tag->name }}
+                                                        </span>
+                                                    @endforeach
+                                                </div>
+                                            @endif
                                         </div>
                                     @endif
                                 </a>
@@ -1039,9 +1047,17 @@
                                     </div>
                                     @if($conv->tags->isNotEmpty())
                                         <div class="flex flex-wrap gap-1 mt-2">
-                                            @foreach($conv->tags as $tag)
-                                                <span class="tag">{{ $tag->name }}</span>
-                                            @endforeach
+                                            @if($conv->tags->count() > 0)
+                                                <div class="flex flex-wrap gap-1 mt-2">
+                                                    @foreach($conv->tags as $tag)
+                                                        <span class="px-2 py-1 text-xs rounded flex items-center gap-1"
+                                                            style="background-color: {{ $tag->color }}20; color: {{ $tag->color }}; border: 1px solid {{ $tag->color }};">
+                                                            <span class="w-2 h-2 rounded-full" style="background-color: {{ $tag->color }};"></span>
+                                                            {{ $tag->name }}
+                                                        </span>
+                                                    @endforeach
+                                                </div>
+                                            @endif
                                         </div>
                                     @endif
                                 </a>
@@ -1155,51 +1171,86 @@
             </div>
 
             <!-- タグメニュー -->
-            @if($conversation)
-            <div id="tagMenu" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div class="bg-white rounded-lg p-6 w-96" style="background: var(--bg-primary);">
-                    <h3 class="text-lg font-bold mb-4" style="color: var(--text-primary);">タグの編集</h3>
-                    
-                    <div class="space-y-4">
-                        <!-- 既存のタグ -->
-                        @foreach($conversation->tags as $tag)
-                        <label class="flex items-center gap-2">
-                            <input type="checkbox" 
-                                value="{{ $tag->id }}" 
-                                checked
-                                onchange="handleTagChange({{ $conversation->id }}, {{ $tag->id }}, this.checked)"
-                                class="rounded">
-                            <span style="color: var(--text-primary);">{{ $tag->name }}</span>
-                        </label>
-                        @endforeach
-                        
-                        <!-- 新しいタグを追加 -->
-                        <div class="mt-4 pt-4 border-t" style="border-color: var(--border-color);">
-                            <label class="block text-sm font-medium mb-2" style="color: var(--text-primary);">新しいタグ</label>
-                            <div class="flex gap-2">
-                                <input type="text" 
-                                    id="newTagInput"
-                                    placeholder="タグ名を入力"
-                                    class="flex-1 px-3 py-2 border rounded-lg"
-                                    style="background: var(--bg-secondary); color: var(--text-primary); border-color: var(--border-color);">
-                                <button onclick="addNewTag()"
-                                        class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
-                                    追加
+                    @if($conversation)
+                    <div id="tagMenu" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div class="bg-white rounded-lg p-6 w-96" style="background: var(--bg-primary);">
+                            <h3 class="text-lg font-bold mb-4" style="color: var(--text-primary);">タグの編集</h3>
+                            
+                            <div class="space-y-4">
+                                <!-- 既存のタグ -->
+                                @foreach($conversation->tags as $tag)
+                                <div class="flex items-center gap-2">
+                                    <input type="checkbox" 
+                                        value="{{ $tag->id }}" 
+                                        checked
+                                        onchange="handleTagChange({{ $conversation->id }}, {{ $tag->id }}, this.checked, event)"
+                                        class="rounded">
+                                    <span class="flex items-center gap-2" style="color: var(--text-primary);">
+                                        <span class="w-4 h-4 rounded-full" style="background-color: {{ $tag->color }};"></span>
+                                        {{ $tag->name }}
+                                    </span>
+                                </div>
+                                @endforeach
+                                
+                                <!-- 新しいタグを追加 -->
+                                <div class="mt-4 pt-4 border-t" style="border-color: var(--border-color);">
+                                    <label class="block text-sm font-medium mb-2" style="color: var(--text-primary);">新しいタグ</label>
+                                    <div class="space-y-3">
+                                        <input type="text" 
+                                            id="newTagInput"
+                                            placeholder="タグ名を入力"
+                                            class="w-full px-3 py-2 border rounded-lg"
+                                            style="background: var(--bg-secondary); color: var(--text-primary); border-color: var(--border-color);">
+                                        
+                                        <!-- 色選択 -->
+                                        <div>
+                                            <label class="block text-sm font-medium mb-2" style="color: var(--text-primary);">色を選択</label>
+                                            <div class="flex gap-2 flex-wrap">
+                                                <button type="button" onclick="selectTagColor('#3B82F6')" 
+                                                        class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400" 
+                                                        style="background-color: #3B82F6;" data-color="#3B82F6"></button>
+                                                <button type="button" onclick="selectTagColor('#10B981')" 
+                                                        class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400" 
+                                                        style="background-color: #10B981;" data-color="#10B981"></button>
+                                                <button type="button" onclick="selectTagColor('#F59E0B')" 
+                                                        class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400" 
+                                                        style="background-color: #F59E0B;" data-color="#F59E0B"></button>
+                                                <button type="button" onclick="selectTagColor('#EF4444')" 
+                                                        class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400" 
+                                                        style="background-color: #EF4444;" data-color="#EF4444"></button>
+                                                <button type="button" onclick="selectTagColor('#8B5CF6')" 
+                                                        class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400" 
+                                                        style="background-color: #8B5CF6;" data-color="#8B5CF6"></button>
+                                                <button type="button" onclick="selectTagColor('#EC4899')" 
+                                                        class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400" 
+                                                        style="background-color: #EC4899;" data-color="#EC4899"></button>
+                                                <button type="button" onclick="selectTagColor('#6366F1')" 
+                                                        class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400" 
+                                                        style="background-color: #6366F1;" data-color="#6366F1"></button>
+                                                <button type="button" onclick="selectTagColor('#14B8A6')" 
+                                                        class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400" 
+                                                        style="background-color: #14B8A6;" data-color="#14B8A6"></button>
+                                            </div>
+                                        </div>
+                                        
+                                        <button onclick="addNewTag()"
+                                                class="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                                            追加
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-6 flex justify-end">
+                                <button onclick="toggleTagMenu()"
+                                        class="px-4 py-2 border rounded-lg"
+                                        style="background: var(--bg-secondary); color: var(--text-primary); border-color: var(--border-color);">
+                                    閉じる
                                 </button>
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="mt-6 flex justify-end">
-                        <button onclick="toggleTagMenu()"
-                                class="px-4 py-2 border rounded-lg"
-                                style="background: var(--bg-secondary); color: var(--text-primary); border-color: var(--border-color);">
-                            閉じる
-                        </button>
-                    </div>
-                </div>
-            </div>
-            @endif
+                    @endif
 
             <!--- エクスポートメニュー --->
             @if($conversation)
@@ -2188,84 +2239,177 @@
             document.getElementById('exportMenu').classList.toggle('hidden');
         }
 
+        // 選択された色を保持
+        let selectedTagColor = '#3B82F6'; // デフォルト: 青
+
+        function selectTagColor(color) {
+            selectedTagColor = color;
+            
+            // すべての色ボタンの選択状態をリセット
+            document.querySelectorAll('.tag-color-btn').forEach(btn => {
+                btn.style.borderColor = 'transparent';
+                btn.style.borderWidth = '2px';
+            });
+            
+            // 選択された色のボタンをハイライト
+            event.target.style.borderColor = '#374151';
+            event.target.style.borderWidth = '3px';
+        }
+
         // 新しいタグを追加
         async function addNewTag() {
-            const input = document.getElementById('newTagInput');
-            const tagName = input.value.trim();
+            const tagName = document.getElementById('newTagInput').value.trim();
+            if (!tagName) {
+                alert('タグ名を入力してください');
+                return;
+            }
 
-            if (!tagName) return;
+            const conversationId = {{ $conversation->id ?? 'null' }};
+            if (!conversationId) {
+                alert('会話が選択されていません');
+                return;
+            }
 
-            @if($conversation)
+            // 既存のタグ名を取得
+            const existingTags = [];
+            const tagMenuItems = document.querySelectorAll('#tagMenu input[type="checkbox"]');
+            
+            tagMenuItems.forEach(checkbox => {
+                if (checkbox.checked) {
+                    const parent = checkbox.parentElement;
+                    const spans = parent.querySelectorAll('span');
+                    
+                    // 空でない最初のspanを探す
+                    for (let span of spans) {
+                        const name = span.textContent.trim();
+                        if (name && name.length > 0) {
+                            existingTags.push(name);
+                            break; // 最初の有効なspanを取得したらループを抜ける
+                        }
+                    }
+                }
+            });
+
+            console.log('Existing tags found:', existingTags);
+            console.log('New tag to add:', tagName);
+
+            // 新しいタグを追加
+            const allTags = [...existingTags, tagName];
+            console.log('All tags to send:', allTags);
+
             try {
-                const response = await fetch(`/conversations/{{ $conversation->id }}/tags`, {
+                const response = await fetch(`${window.location.origin}/conversations/${conversationId}/tags`, {
                     method: 'PUT',
                     headers: {
-                        'X-CSRF-TOKEN': csrfToken,
                         'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
                     },
                     body: JSON.stringify({
-                        tags: [...@json($conversation->tags->pluck('name')), tagName]
-                    }),
+                        tags: allTags,
+                        new_tag: tagName,
+                        color: selectedTagColor
+                    })
                 });
 
-                if (response.ok) {
-                    location.reload();
+                const data = await response.json();
+
+                if (!response.ok) {
+                    if (data.errors) {
+                        alert('バリデーションエラー: ' + JSON.stringify(data.errors));
+                    } else {
+                        alert('エラー: ' + (data.message || 'Unknown error'));
+                    }
+                    return;
+                }
+
+                if (data.success) {
+                    window.location.reload(true);
+                } else {
+                    alert('タグの追加に失敗しました: ' + (data.message || ''));
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('タグの追加に失敗しました');
+                alert('エラーが発生しました: ' + error.message);
             }
-            @endif
         }
 
         // タグ変更（チェックボックスのトグル）
-        async function handleTagChange(conversationId, tagId, isChecked) {
-            console.log('タグ変更:', conversationId, tagId, isChecked);
-
-            try {
-                // 現在の会話のすべてのタグを取得
-                const checkboxes = document.querySelectorAll('#tagMenu input[type="checkbox"]');
-                const selectedTags = [];
-
-                checkboxes.forEach(checkbox => {
-                    if (checkbox.checked) {
-                        // チェックされているタグのIDを取得
-                        const tagId = checkbox.value;
-                        // タグ名を取得（labelのテキスト）
-                        const tagName = checkbox.parentElement.querySelector('span').textContent.trim();
-                        selectedTags.push(tagName);
+        async function handleTagChange(conversationId, tagId, isChecked, event) {
+            console.log('handleTagChange called:', { conversationId, tagId, isChecked });
+            
+            // すべてのチェックボックスを取得
+            const allCheckboxes = document.querySelectorAll('#tagMenu input[type="checkbox"]');
+            
+            // チェックされているタグの名前を取得
+            const tagNames = [];
+            allCheckboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    const parent = checkbox.parentElement;
+                    const spans = parent.querySelectorAll('span');
+                    
+                    // 空でない最初のspanを探す
+                    for (let span of spans) {
+                        const name = span.textContent.trim();
+                        if (name && name.length > 0) {
+                            tagNames.push(name);
+                            break;
+                        }
                     }
-                });
+                }
+            });
 
-                console.log('選択されたタグ:', selectedTags);
+            console.log('Tag names to send:', tagNames);
 
-                // タグを更新
-                const response = await fetch(`/conversations/${conversationId}/tags`, {
+            // タグが0個でも送信（空配列を送る）
+            try {
+                const url = `${window.location.origin}/conversations/${conversationId}/tags`;
+                console.log('Sending request to:', url);
+                
+                const response = await fetch(url, {
                     method: 'PUT',
                     headers: {
-                        'X-CSRF-TOKEN': csrfToken,
                         'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json'
                     },
                     body: JSON.stringify({
-                        tags: selectedTags
-                    }),
+                        tags: tagNames  // 空配列でもOK
+                    })
                 });
 
+                console.log('Response status:', response.status);
+                
+                const data = await response.json();
+                console.log('Response data:', data);
+                
                 if (!response.ok) {
-                    throw new Error('タグの更新に失敗しました');
+                    if (data.errors) {
+                        console.error('Validation errors:', data.errors);
+                        alert('バリデーションエラー: ' + JSON.stringify(data.errors));
+                    } else {
+                        alert('エラー: ' + (data.message || 'Unknown error'));
+                    }
+                    if (event && event.target) {
+                        event.target.checked = !isChecked;
+                    }
+                    return;
                 }
 
-                const data = await response.json();
-                console.log('タグ更新成功:', data);
-
-                // 成功したら少し待ってからリロード
-                setTimeout(() => {
+                if (data.success) {
                     location.reload();
-                }, 300);
-
+                } else {
+                    alert('タグの更新に失敗しました: ' + (data.message || ''));
+                    if (event && event.target) {
+                        event.target.checked = !isChecked;
+                    }
+                }
             } catch (error) {
-                console.error('タグ変更エラー:', error);
-                alert('タグの更新に失敗しました: ' + error.message);
+                console.error('Error details:', error);
+                alert('エラーが発生しました: ' + error.message);
+                if (event && event.target) {
+                    event.target.checked = !isChecked;
+                }
             }
         }
 
