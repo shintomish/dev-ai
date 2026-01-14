@@ -1174,13 +1174,13 @@
             <div id="tagMenu" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                 <div class="bg-white rounded-lg p-6 w-96" style="background: var(--bg-primary);">
                     <h3 class="text-lg font-bold mb-4" style="color: var(--text-primary);">タグの編集</h3>
-                    
+
                     <div class="space-y-4">
                         <!-- 既存のタグ -->
                         @foreach($conversation->tags as $tag)
                         <div class="flex items-center gap-2">
-                            <input type="checkbox" 
-                                value="{{ $tag->id }}" 
+                            <input type="checkbox"
+                                value="{{ $tag->id }}"
                                 checked
                                 onchange="handleTagChange({{ $conversation->id }}, {{ $tag->id }}, this.checked, event)"
                                 class="rounded">
@@ -1190,48 +1190,48 @@
                             </span>
                         </div>
                         @endforeach
-                        
+
                         <!-- 新しいタグを追加 -->
                         <div class="mt-4 pt-4 border-t" style="border-color: var(--border-color);">
                             <label class="block text-sm font-medium mb-2" style="color: var(--text-primary);">新しいタグ</label>
                             <div class="space-y-3">
-                                <input type="text" 
+                                <input type="text"
                                     id="newTagInput"
                                     placeholder="タグ名を入力"
                                     class="w-full px-3 py-2 border rounded-lg"
                                     style="background: var(--bg-secondary); color: var(--text-primary); border-color: var(--border-color);">
-                                
+
                                 <!-- 色選択 -->
                                 <div>
                                     <label class="block text-sm font-medium mb-2" style="color: var(--text-primary);">色を選択</label>
                                     <div class="flex gap-2 flex-wrap">
-                                        <button type="button" onclick="selectTagColor('#3B82F6')" 
-                                                class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400" 
+                                        <button type="button" onclick="selectTagColor('#3B82F6')"
+                                                class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400"
                                                 style="background-color: #3B82F6;" data-color="#3B82F6"></button>
-                                        <button type="button" onclick="selectTagColor('#10B981')" 
-                                                class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400" 
+                                        <button type="button" onclick="selectTagColor('#10B981')"
+                                                class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400"
                                                 style="background-color: #10B981;" data-color="#10B981"></button>
-                                        <button type="button" onclick="selectTagColor('#F59E0B')" 
-                                                class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400" 
+                                        <button type="button" onclick="selectTagColor('#F59E0B')"
+                                                class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400"
                                                 style="background-color: #F59E0B;" data-color="#F59E0B"></button>
-                                        <button type="button" onclick="selectTagColor('#EF4444')" 
-                                                class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400" 
+                                        <button type="button" onclick="selectTagColor('#EF4444')"
+                                                class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400"
                                                 style="background-color: #EF4444;" data-color="#EF4444"></button>
-                                        <button type="button" onclick="selectTagColor('#8B5CF6')" 
-                                                class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400" 
+                                        <button type="button" onclick="selectTagColor('#8B5CF6')"
+                                                class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400"
                                                 style="background-color: #8B5CF6;" data-color="#8B5CF6"></button>
-                                        <button type="button" onclick="selectTagColor('#EC4899')" 
-                                                class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400" 
+                                        <button type="button" onclick="selectTagColor('#EC4899')"
+                                                class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400"
                                                 style="background-color: #EC4899;" data-color="#EC4899"></button>
-                                        <button type="button" onclick="selectTagColor('#6366F1')" 
-                                                class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400" 
+                                        <button type="button" onclick="selectTagColor('#6366F1')"
+                                                class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400"
                                                 style="background-color: #6366F1;" data-color="#6366F1"></button>
-                                        <button type="button" onclick="selectTagColor('#14B8A6')" 
-                                                class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400" 
+                                        <button type="button" onclick="selectTagColor('#14B8A6')"
+                                                class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400"
                                                 style="background-color: #14B8A6;" data-color="#14B8A6"></button>
                                     </div>
                                 </div>
-                                
+
                                 <button onclick="addNewTag()"
                                         class="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
                                     追加
@@ -1239,7 +1239,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="mt-6 flex justify-end">
                         <button onclick="toggleTagMenu()"
                                 class="px-4 py-2 border rounded-lg"
@@ -1256,7 +1256,7 @@
             <div id="exportMenu" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                 <div class="bg-white rounded-lg p-6 w-96" style="background: var(--bg-primary);">
                     <h3 class="text-lg font-bold mb-4" style="color: var(--text-primary);">エクスポート</h3>
-                    
+
                     <div class="space-y-3">
                         <a href="{{ route('conversations.export', ['conversation' => $conversation->id, 'format' => 'markdown']) }}"
                         class="block px-4 py-3 rounded-lg hover:bg-gray-100 transition"
@@ -1277,7 +1277,7 @@
                             📝 テキスト形式でエクスポート
                         </a>
                     </div>
-                    
+
                     <div class="mt-6 flex justify-end">
                         <button onclick="toggleExportMenu()"
                                 class="px-4 py-2 border rounded-lg"
@@ -1388,6 +1388,10 @@
                         </button>
                         <span id="charCount" class="text-xs text-gray-500 text-center" style="color: var(--text-secondary);">0 / 10000</span>
                     </div>
+                </div>
+                <!-- 免責事項 -->
+                <div class="mt-3 text-center text-xs" style="color: var(--text-secondary);">
+                    <p>⚠️ ai-mon.net は AI のため、回答が必ずしも正しいとは限りません。回答内容は必ずご確認ください。</p>
                 </div>
             </form>
 
@@ -2248,13 +2252,13 @@
 
         function selectTagColor(color) {
             selectedTagColor = color;
-            
+
             // すべての色ボタンの選択状態をリセット
             document.querySelectorAll('.tag-color-btn').forEach(btn => {
                 btn.style.borderColor = 'transparent';
                 btn.style.borderWidth = '2px';
             });
-            
+
             // 選択された色のボタンをハイライト
             event.target.style.borderColor = '#374151';
             event.target.style.borderWidth = '3px';
@@ -2277,12 +2281,12 @@
             // 既存のタグ名を取得
             const existingTags = [];
             const tagMenuItems = document.querySelectorAll('#tagMenu input[type="checkbox"]');
-            
+
             tagMenuItems.forEach(checkbox => {
                 if (checkbox.checked) {
                     const parent = checkbox.parentElement;
                     const spans = parent.querySelectorAll('span');
-                    
+
                     // 空でない最初のspanを探す
                     for (let span of spans) {
                         const name = span.textContent.trim();
@@ -2341,17 +2345,17 @@
         // タグ変更（チェックボックスのトグル）
         async function handleTagChange(conversationId, tagId, isChecked, event) {
             console.log('handleTagChange called:', { conversationId, tagId, isChecked });
-            
+
             // すべてのチェックボックスを取得
             const allCheckboxes = document.querySelectorAll('#tagMenu input[type="checkbox"]');
-            
+
             // チェックされているタグの名前を取得
             const tagNames = [];
             allCheckboxes.forEach(checkbox => {
                 if (checkbox.checked) {
                     const parent = checkbox.parentElement;
                     const spans = parent.querySelectorAll('span');
-                    
+
                     // 空でない最初のspanを探す
                     for (let span of spans) {
                         const name = span.textContent.trim();
@@ -2369,7 +2373,7 @@
             try {
                 const url = `${window.location.origin}/conversations/${conversationId}/tags`;
                 console.log('Sending request to:', url);
-                
+
                 const response = await fetch(url, {
                     method: 'PUT',
                     headers: {
@@ -2383,10 +2387,10 @@
                 });
 
                 console.log('Response status:', response.status);
-                
+
                 const data = await response.json();
                 console.log('Response data:', data);
-                
+
                 if (!response.ok) {
                     if (data.errors) {
                         console.error('Validation errors:', data.errors);
