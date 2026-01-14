@@ -47,7 +47,7 @@ class ConversationController extends Controller
     {
         $request->validate([
             'title' => 'nullable|string|max:255',
-            'mode' => 'required|in:dev,study',
+            'mode' => 'required|in:dev,study,sales',  // sales を追加
         ]);
 
         $conversation = Conversation::create([

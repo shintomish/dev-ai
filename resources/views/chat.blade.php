@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>開発支援AI - Claude Chat</title>
+    <title>開発・営業支援AI - Ai-Mon</title>
 
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
@@ -1078,7 +1078,6 @@
         <!-- メインチャットエリア -->
         <main>
             <!-- ヘッダー -->
-            <!-- ヘッダー -->
             <div class="border-b border-gray-200 bg-white p-4" style="background: var(--bg-primary); border-color: var(--border-color);">
                 <div class="flex items-center justify-between">
                     <!-- 左側：タイトル -->
@@ -1171,86 +1170,86 @@
             </div>
 
             <!-- タグメニュー -->
-                    @if($conversation)
-                    <div id="tagMenu" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                        <div class="bg-white rounded-lg p-6 w-96" style="background: var(--bg-primary);">
-                            <h3 class="text-lg font-bold mb-4" style="color: var(--text-primary);">タグの編集</h3>
-                            
-                            <div class="space-y-4">
-                                <!-- 既存のタグ -->
-                                @foreach($conversation->tags as $tag)
-                                <div class="flex items-center gap-2">
-                                    <input type="checkbox" 
-                                        value="{{ $tag->id }}" 
-                                        checked
-                                        onchange="handleTagChange({{ $conversation->id }}, {{ $tag->id }}, this.checked, event)"
-                                        class="rounded">
-                                    <span class="flex items-center gap-2" style="color: var(--text-primary);">
-                                        <span class="w-4 h-4 rounded-full" style="background-color: {{ $tag->color }};"></span>
-                                        {{ $tag->name }}
-                                    </span>
-                                </div>
-                                @endforeach
+            @if($conversation)
+            <div id="tagMenu" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div class="bg-white rounded-lg p-6 w-96" style="background: var(--bg-primary);">
+                    <h3 class="text-lg font-bold mb-4" style="color: var(--text-primary);">タグの編集</h3>
+                    
+                    <div class="space-y-4">
+                        <!-- 既存のタグ -->
+                        @foreach($conversation->tags as $tag)
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" 
+                                value="{{ $tag->id }}" 
+                                checked
+                                onchange="handleTagChange({{ $conversation->id }}, {{ $tag->id }}, this.checked, event)"
+                                class="rounded">
+                            <span class="flex items-center gap-2" style="color: var(--text-primary);">
+                                <span class="w-4 h-4 rounded-full" style="background-color: {{ $tag->color }};"></span>
+                                {{ $tag->name }}
+                            </span>
+                        </div>
+                        @endforeach
+                        
+                        <!-- 新しいタグを追加 -->
+                        <div class="mt-4 pt-4 border-t" style="border-color: var(--border-color);">
+                            <label class="block text-sm font-medium mb-2" style="color: var(--text-primary);">新しいタグ</label>
+                            <div class="space-y-3">
+                                <input type="text" 
+                                    id="newTagInput"
+                                    placeholder="タグ名を入力"
+                                    class="w-full px-3 py-2 border rounded-lg"
+                                    style="background: var(--bg-secondary); color: var(--text-primary); border-color: var(--border-color);">
                                 
-                                <!-- 新しいタグを追加 -->
-                                <div class="mt-4 pt-4 border-t" style="border-color: var(--border-color);">
-                                    <label class="block text-sm font-medium mb-2" style="color: var(--text-primary);">新しいタグ</label>
-                                    <div class="space-y-3">
-                                        <input type="text" 
-                                            id="newTagInput"
-                                            placeholder="タグ名を入力"
-                                            class="w-full px-3 py-2 border rounded-lg"
-                                            style="background: var(--bg-secondary); color: var(--text-primary); border-color: var(--border-color);">
-                                        
-                                        <!-- 色選択 -->
-                                        <div>
-                                            <label class="block text-sm font-medium mb-2" style="color: var(--text-primary);">色を選択</label>
-                                            <div class="flex gap-2 flex-wrap">
-                                                <button type="button" onclick="selectTagColor('#3B82F6')" 
-                                                        class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400" 
-                                                        style="background-color: #3B82F6;" data-color="#3B82F6"></button>
-                                                <button type="button" onclick="selectTagColor('#10B981')" 
-                                                        class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400" 
-                                                        style="background-color: #10B981;" data-color="#10B981"></button>
-                                                <button type="button" onclick="selectTagColor('#F59E0B')" 
-                                                        class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400" 
-                                                        style="background-color: #F59E0B;" data-color="#F59E0B"></button>
-                                                <button type="button" onclick="selectTagColor('#EF4444')" 
-                                                        class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400" 
-                                                        style="background-color: #EF4444;" data-color="#EF4444"></button>
-                                                <button type="button" onclick="selectTagColor('#8B5CF6')" 
-                                                        class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400" 
-                                                        style="background-color: #8B5CF6;" data-color="#8B5CF6"></button>
-                                                <button type="button" onclick="selectTagColor('#EC4899')" 
-                                                        class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400" 
-                                                        style="background-color: #EC4899;" data-color="#EC4899"></button>
-                                                <button type="button" onclick="selectTagColor('#6366F1')" 
-                                                        class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400" 
-                                                        style="background-color: #6366F1;" data-color="#6366F1"></button>
-                                                <button type="button" onclick="selectTagColor('#14B8A6')" 
-                                                        class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400" 
-                                                        style="background-color: #14B8A6;" data-color="#14B8A6"></button>
-                                            </div>
-                                        </div>
-                                        
-                                        <button onclick="addNewTag()"
-                                                class="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
-                                            追加
-                                        </button>
+                                <!-- 色選択 -->
+                                <div>
+                                    <label class="block text-sm font-medium mb-2" style="color: var(--text-primary);">色を選択</label>
+                                    <div class="flex gap-2 flex-wrap">
+                                        <button type="button" onclick="selectTagColor('#3B82F6')" 
+                                                class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400" 
+                                                style="background-color: #3B82F6;" data-color="#3B82F6"></button>
+                                        <button type="button" onclick="selectTagColor('#10B981')" 
+                                                class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400" 
+                                                style="background-color: #10B981;" data-color="#10B981"></button>
+                                        <button type="button" onclick="selectTagColor('#F59E0B')" 
+                                                class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400" 
+                                                style="background-color: #F59E0B;" data-color="#F59E0B"></button>
+                                        <button type="button" onclick="selectTagColor('#EF4444')" 
+                                                class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400" 
+                                                style="background-color: #EF4444;" data-color="#EF4444"></button>
+                                        <button type="button" onclick="selectTagColor('#8B5CF6')" 
+                                                class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400" 
+                                                style="background-color: #8B5CF6;" data-color="#8B5CF6"></button>
+                                        <button type="button" onclick="selectTagColor('#EC4899')" 
+                                                class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400" 
+                                                style="background-color: #EC4899;" data-color="#EC4899"></button>
+                                        <button type="button" onclick="selectTagColor('#6366F1')" 
+                                                class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400" 
+                                                style="background-color: #6366F1;" data-color="#6366F1"></button>
+                                        <button type="button" onclick="selectTagColor('#14B8A6')" 
+                                                class="tag-color-btn w-8 h-8 rounded-full border-2 border-transparent hover:border-gray-400" 
+                                                style="background-color: #14B8A6;" data-color="#14B8A6"></button>
                                     </div>
                                 </div>
-                            </div>
-                            
-                            <div class="mt-6 flex justify-end">
-                                <button onclick="toggleTagMenu()"
-                                        class="px-4 py-2 border rounded-lg"
-                                        style="background: var(--bg-secondary); color: var(--text-primary); border-color: var(--border-color);">
-                                    閉じる
+                                
+                                <button onclick="addNewTag()"
+                                        class="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                                    追加
                                 </button>
                             </div>
                         </div>
                     </div>
-                    @endif
+                    
+                    <div class="mt-6 flex justify-end">
+                        <button onclick="toggleTagMenu()"
+                                class="px-4 py-2 border rounded-lg"
+                                style="background: var(--bg-secondary); color: var(--text-primary); border-color: var(--border-color);">
+                            閉じる
+                        </button>
+                    </div>
+                </div>
+            </div>
+            @endif
 
             <!--- エクスポートメニュー --->
             @if($conversation)
@@ -1341,12 +1340,17 @@
                     <label class="flex items-center gap-2">
                         <input type="radio" name="mode" value="dev" {{ !$conversation || $conversation->mode === 'dev' ? 'checked' : '' }}
                             class="text-blue-600" {{ $conversation ? 'disabled' : '' }}>
-                        <span class="text-sm font-medium" style="color: var(--text-primary);">🔧 開発支援</span>
+                        <span class="text-sm font-medium" style="color: var(--text-primary);">💻 開発支援</span>
                     </label>
                     <label class="flex items-center gap-2">
                         <input type="radio" name="mode" value="study" {{ $conversation && $conversation->mode === 'study' ? 'checked' : '' }}
-                            class="text-green-600" {{ $conversation ? 'disabled' : '' }}>
+                            class="text-pink-600" {{ $conversation ? 'disabled' : '' }}>
                         <span class="text-sm font-medium" style="color: var(--text-primary);">📚 学習支援</span>
+                    </label>
+                    <label class="flex items-center gap-2">
+                        <input type="radio" name="mode" value="sales" {{ $conversation && $conversation->mode === 'sales' ? 'checked' : '' }}
+                            class="text-green-600" {{ $conversation ? 'disabled' : '' }}>
+                        <span class="text-sm font-medium" style="color: var(--text-primary);">💼 営業支援</span>
                     </label>
                     <label class="flex items-center gap-2 ml-auto">
                         <input type="checkbox" id="streamMode" class="rounded">

@@ -88,7 +88,7 @@ class ChatController extends Controller
         $request->validate([
             'message' => 'required|string|max:10000',
             'conversation_id' => 'nullable|integer|exists:conversations,id',
-            'mode' => 'required|in:dev,study',
+            'mode' => 'required|in:dev,study,sales',  // sales を追加
             'files.*' => 'nullable|file|max:10240',
         ]);
 
@@ -323,7 +323,7 @@ class ChatController extends Controller
     {
         $validated = $request->validate([
             'message' => 'required|string|max:10000',
-            'mode' => 'required|in:dev,study',
+            'mode' => 'required|in:dev,study,sales',  // sales を追加
             'conversation_id' => 'nullable|exists:conversations,id',
         ]);
 
@@ -975,6 +975,9 @@ public function export(Conversation $conversation, Request $request)
     /**
      * モード別のシステムプロンプトを返す
      */
+/**
+     * モード別のシステムプロンプトを返す
+     */
     private function getSystemPrompt(string $mode): string
     {
         return match($mode) {
@@ -1030,6 +1033,41 @@ PROMPT,
 
 日本語で、優しく丁寧な口調で回答してください。
 PROMPT,
+
+            'sales' => <<<'PROMPT'
+あなたは経験豊富な営業コンサルタント・ビジネスアドバイザーAIです。
+
+【専門分野】
+- 新規顧客開拓 - アプローチ方法、初回訪問、関係構築
+- 提案・プレゼンテーション - 提案書作成、商談準備、プレゼン技術
+- 顧客対応 - メール文面、電話対応、クレーム処理
+- 営業戦略 - ターゲット選定、市場分析、競合対策
+- 契約・交渉 - 見積作成、価格交渉、契約書確認
+
+【対応スタイル】
+- 顧客視点を重視した提案
+- 実践的で即実行できるアドバイス
+- 業界標準のベストプラクティスを提示
+- 具体的な文例・テンプレートの提供
+- リスクや注意点も明示
+
+【回答形式】
+- 結論を先に（ポイントを3つまで）
+- 具体的なアクションプランを提示
+- 使える文例やテンプレートを含める
+- 成功のコツと避けるべき失敗を明示
+- 次のステップを示す
+
+【目標】
+- 顧客との信頼関係構築
+- Win-Winの関係づくり
+- 持続可能なビジネス成長
+- 顧客満足度の向上
+
+日本語で、ビジネスパーソン向けの実践的な口調で回答してください。
+PROMPT,
+
+            default => 'あなたは親切で知識豊富なAIアシスタントです。',
         };
     }
 }
