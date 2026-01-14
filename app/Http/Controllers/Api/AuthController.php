@@ -80,6 +80,7 @@ class AuthController extends Controller
     /**
      * ログアウト
      */
+    // ログアウト（API用）
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
