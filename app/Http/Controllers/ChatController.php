@@ -135,7 +135,7 @@ class ChatController extends Controller
         // 4. ユーザーメッセージ保存
         $userMessage = Message::create([
             'conversation_id' => $conversation->id,
-            'role' => 'user',
+            'role' => 'user',  // ← assistantではなくuser
             'content' => $messageText,
         ]);
 
@@ -260,6 +260,15 @@ class ChatController extends Controller
                 $outputTokens = $usage['output_tokens'] ?? null;
                 $totalTokens = $inputTokens && $outputTokens ? $inputTokens + $outputTokens : null;
 
+                // コスト計算
+                $costUsd = $this->calculateCost($inputTokens ?? 0, $outputTokens ?? 0);
+
+                \Log::info('Cost calculation', [
+                    'input_tokens' => $inputTokens,
+                    'output_tokens' => $outputTokens,
+                    'cost_usd' => $costUsd,
+                ]);
+                                
                 // アシスタントメッセージを保存（トークン情報を含む）
                 $assistantMessage = Message::create([
                     'conversation_id' => $conversation->id,
@@ -272,8 +281,12 @@ class ChatController extends Controller
                     'input_tokens' => $inputTokens,
                     'output_tokens' => $outputTokens,
                     'total_tokens' => $totalTokens,
+                    'cost_usd' => $costUsd,
                 ]);
 
+                // 会話の合計トークン数とコストを更新
+                $conversation->increment('total_tokens', $totalTokens ?? 0);
+                $conversation->increment('total_cost_usd', $costUsd);
                 $conversation->touch();
 
                 Log::info('ChatController send END');
@@ -1188,5 +1201,15 @@ PROMPT,
             'top_conversations_by_mode' => $topConversationsByMode,
         ]);
     }
-
+    /**
+     * トークン使用量からコストを計算（USD）
+     * Claude Sonnet 4の料金: Input $3/1M tokens, Output $15/1M tokens
+     */
+    private function calculateCost(int $inputTokens, int $outputTokens): float
+    {
+        $inputCost = ($inputTokens / 1_000_000) * 3.0;   // $3 per 1M input tokens
+        $outputCost = ($outputTokens / 1_000_000) * 15.5; // $15.5 per 1M output tokens
+        
+        return $inputCost + $outputCost;
+    }
 }

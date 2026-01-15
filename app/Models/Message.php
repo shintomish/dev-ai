@@ -17,6 +17,7 @@ class Message extends Model
         'input_tokens',      // 追加
         'output_tokens',     // 追加
         'total_tokens',      // 追加
+        'cost_usd',          // 追加
     ];
 
     protected $casts = [

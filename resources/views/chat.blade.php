@@ -1753,6 +1753,8 @@
         // 全体統計を読み込む
         async function loadOverallStats() {
             try {
+                console.log('loadOverallStats START');
+
                 const response = await fetch('/stats/tokens/detailed', {
                     headers: {
                         'Accept': 'application/json',
@@ -1760,9 +1762,14 @@
                     }
                 });
 
+                console.log('Response status:', response.status);
+
                 if (!response.ok) throw new Error('Failed to load stats');
 
                 const data = await response.json();
+
+                console.log('Stats data:', data);
+                console.log('Conversations count:', data.conversations?.length);
                 
                 // 月間サマリーを表示
                 displayMonthlySummary(data.monthly);
@@ -1843,16 +1850,38 @@
                 let inputTokens = 0;
                 let outputTokens = 0;
                 let totalCostUsd = 0;
-                
+
+                console.log('=== Conversation ' + conv.id + ' ===');
+                console.log('Messages array:', conv.messages);
+
                 if (conv.messages && Array.isArray(conv.messages)) {
-                    conv.messages.forEach(msg => {
+                    conv.messages.forEach((msg, idx) => {
+                        console.log(`Message ${idx}:`, {
+                            id: msg.id,
+                            input_tokens: msg.input_tokens,
+                            output_tokens: msg.output_tokens,
+                            cost_usd: msg.cost_usd,
+                            cost_usd_type: typeof msg.cost_usd
+                        });
+                        
                         inputTokens += parseInt(msg.input_tokens) || 0;
                         outputTokens += parseInt(msg.output_tokens) || 0;
-                        totalCostUsd += parseFloat(msg.cost_usd) || 0;
+                        
+                        const msgCost = parseFloat(msg.cost_usd);
+                        console.log(`Parsed cost: ${msgCost}, isNaN: ${isNaN(msgCost)}`);
+                        
+                        if (!isNaN(msgCost)) {
+                            totalCostUsd += msgCost;
+                        }
                     });
                 }
                 
-                const costJpy = Math.round(totalCostUsd * 150);
+                console.log('Total input:', inputTokens);
+                console.log('Total output:', outputTokens);
+                console.log('Total cost USD:', totalCostUsd);
+                console.log('Cost JPY:', Math.round(totalCostUsd * 155));
+                
+                const costJpy = Math.round(totalCostUsd * 155);
 
                 return `
                     <div class="p-3 rounded" style="background: var(--bg-secondary);">
