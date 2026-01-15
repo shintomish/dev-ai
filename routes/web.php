@@ -74,6 +74,10 @@ Route::middleware(['web', 'auth'])->group(function () {
 
     // ========== プリセットプロンプト ==========
     Route::get('/prompt-presets/{mode}', [ChatController::class, 'getPromptPresets']);
+    
+    // 統計
+    Route::get('/stats/tokens/detailed', [ChatController::class, 'getDetailedStats']);
+    Route::get('/stats/tokens/by-mode', [ChatController::class, 'getModeStats']);
 
 });
 // ========== ブロードキャスティング認証 ==========

@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ConversationController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\PromptPresetController;
+use App\Http\Controllers\Api\StatsController;
 use Illuminate\Support\Facades\Broadcast;
 
 /*
@@ -56,4 +57,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/prompt-presets/{mode}', [PromptPresetController::class, 'index']);
     Route::get('/prompt-presets', [PromptPresetController::class, 'all']);
 
+    // 統計API
+    Route::get('/stats/tokens/detailed', [StatsController::class, 'detailed']);
+    Route::get('/stats/tokens/by-mode', [StatsController::class, 'byMode']);
 });

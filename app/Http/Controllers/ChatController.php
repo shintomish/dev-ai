@@ -881,96 +881,96 @@ class ChatController extends Controller
     /**
      * 詳細なトークン使用統計（日別、会話別）
      */
-    public function getDetailedStats()
-    {
-        try {
-            $startOfMonth = now()->startOfMonth();
+    // public function getDetailedStats()
+    // {
+    //     try {
+    //         $startOfMonth = now()->startOfMonth();
 
-            // 自分の会話IDを取得
-            $conversationIds = Conversation::where('user_id', auth()->id())
-                ->pluck('id');
+    //         // 自分の会話IDを取得
+    //         $conversationIds = Conversation::where('user_id', auth()->id())
+    //             ->pluck('id');
 
-            // 月間サマリー
-            $monthlyStats = $this->getMonthlyStats();
+    //         // 月間サマリー
+    //         $monthlyStats = $this->getMonthlyStats();
 
-            // 日別の統計（自分のデータのみ）
-            $dailyStats = \DB::table('messages')
-                ->whereIn('conversation_id', $conversationIds)
-                ->where('created_at', '>=', $startOfMonth)
-                ->whereNotNull('total_tokens')
-                ->select(
-                    \DB::raw('DATE(created_at) as date'),
-                    \DB::raw('SUM(input_tokens) as input_tokens'),
-                    \DB::raw('SUM(output_tokens) as output_tokens'),
-                    \DB::raw('SUM(total_tokens) as total_tokens'),
-                    \DB::raw('COUNT(*) as message_count')
-                )
-                ->groupBy('date')
-                ->orderBy('date', 'asc')
-                ->get()
-                ->map(function($stat) {
-                    $inputCost = ($stat->input_tokens ?? 0) / 1_000_000 * 3;
-                    $outputCost = ($stat->output_tokens ?? 0) / 1_000_000 * 15;
-                    return [
-                        'date' => $stat->date,
-                        'input_tokens' => (int)$stat->input_tokens,
-                        'output_tokens' => (int)$stat->output_tokens,
-                        'total_tokens' => (int)$stat->total_tokens,
-                        'message_count' => (int)$stat->message_count,
-                        'cost_usd' => $inputCost + $outputCost,
-                        'cost_jpy' => ($inputCost + $outputCost) * 150,
-                    ];
-                });
+    //         // 日別の統計（自分のデータのみ）
+    //         $dailyStats = \DB::table('messages')
+    //             ->whereIn('conversation_id', $conversationIds)
+    //             ->where('created_at', '>=', $startOfMonth)
+    //             ->whereNotNull('total_tokens')
+    //             ->select(
+    //                 \DB::raw('DATE(created_at) as date'),
+    //                 \DB::raw('SUM(input_tokens) as input_tokens'),
+    //                 \DB::raw('SUM(output_tokens) as output_tokens'),
+    //                 \DB::raw('SUM(total_tokens) as total_tokens'),
+    //                 \DB::raw('COUNT(*) as message_count')
+    //             )
+    //             ->groupBy('date')
+    //             ->orderBy('date', 'asc')
+    //             ->get()
+    //             ->map(function($stat) {
+    //                 $inputCost = ($stat->input_tokens ?? 0) / 1_000_000 * 3;
+    //                 $outputCost = ($stat->output_tokens ?? 0) / 1_000_000 * 15;
+    //                 return [
+    //                     'date' => $stat->date,
+    //                     'input_tokens' => (int)$stat->input_tokens,
+    //                     'output_tokens' => (int)$stat->output_tokens,
+    //                     'total_tokens' => (int)$stat->total_tokens,
+    //                     'message_count' => (int)$stat->message_count,
+    //                     'cost_usd' => $inputCost + $outputCost,
+    //                     'cost_jpy' => ($inputCost + $outputCost) * 150,
+    //                 ];
+    //             });
 
-            // 会話別の統計（自分の会話のみ）
-            $conversationStats = \DB::table('conversations')
-                ->join('messages', 'conversations.id', '=', 'messages.conversation_id')
-                ->where('conversations.user_id', auth()->id())
-                ->where('messages.created_at', '>=', $startOfMonth)
-                ->whereNotNull('messages.total_tokens')
-                ->select(
-                    'conversations.id',
-                    'conversations.title',
-                    \DB::raw('SUM(messages.input_tokens) as input_tokens'),
-                    \DB::raw('SUM(messages.output_tokens) as output_tokens'),
-                    \DB::raw('SUM(messages.total_tokens) as total_tokens'),
-                    \DB::raw('COUNT(messages.id) as message_count')
-                )
-                ->groupBy('conversations.id', 'conversations.title')
-                ->orderByDesc('total_tokens')
-                ->limit(10)
-                ->get()
-                ->map(function($stat) {
-                    $inputCost = ($stat->input_tokens ?? 0) / 1_000_000 * 3;
-                    $outputCost = ($stat->output_tokens ?? 0) / 1_000_000 * 15;
-                    return [
-                        'id' => $stat->id,
-                        'title' => $stat->title ?? '無題の会話',
-                        'input_tokens' => (int)$stat->input_tokens,
-                        'output_tokens' => (int)$stat->output_tokens,
-                        'total_tokens' => (int)$stat->total_tokens,
-                        'message_count' => (int)$stat->message_count,
-                        'cost_usd' => $inputCost + $outputCost,
-                        'cost_jpy' => ($inputCost + $outputCost) * 150,
-                    ];
-                });
+    //         // 会話別の統計（自分の会話のみ）
+    //         $conversationStats = \DB::table('conversations')
+    //             ->join('messages', 'conversations.id', '=', 'messages.conversation_id')
+    //             ->where('conversations.user_id', auth()->id())
+    //             ->where('messages.created_at', '>=', $startOfMonth)
+    //             ->whereNotNull('messages.total_tokens')
+    //             ->select(
+    //                 'conversations.id',
+    //                 'conversations.title',
+    //                 \DB::raw('SUM(messages.input_tokens) as input_tokens'),
+    //                 \DB::raw('SUM(messages.output_tokens) as output_tokens'),
+    //                 \DB::raw('SUM(messages.total_tokens) as total_tokens'),
+    //                 \DB::raw('COUNT(messages.id) as message_count')
+    //             )
+    //             ->groupBy('conversations.id', 'conversations.title')
+    //             ->orderByDesc('total_tokens')
+    //             ->limit(10)
+    //             ->get()
+    //             ->map(function($stat) {
+    //                 $inputCost = ($stat->input_tokens ?? 0) / 1_000_000 * 3;
+    //                 $outputCost = ($stat->output_tokens ?? 0) / 1_000_000 * 15;
+    //                 return [
+    //                     'id' => $stat->id,
+    //                     'title' => $stat->title ?? '無題の会話',
+    //                     'input_tokens' => (int)$stat->input_tokens,
+    //                     'output_tokens' => (int)$stat->output_tokens,
+    //                     'total_tokens' => (int)$stat->total_tokens,
+    //                     'message_count' => (int)$stat->message_count,
+    //                     'cost_usd' => $inputCost + $outputCost,
+    //                     'cost_jpy' => ($inputCost + $outputCost) * 150,
+    //                 ];
+    //             });
 
-            return response()->json([
-                'monthly' => $monthlyStats,
-                'daily' => $dailyStats,
-                'conversations' => $conversationStats,
-            ]);
+    //         return response()->json([
+    //             'monthly' => $monthlyStats,
+    //             'daily' => $dailyStats,
+    //             'conversations' => $conversationStats,
+    //         ]);
 
-        } catch (\Exception $e) {
-            \Log::error('Stats Error: ' . $e->getMessage());
-            return response()->json([
-                'error' => $e->getMessage(),
-                'monthly' => $this->getMonthlyStats(),
-                'daily' => [],
-                'conversations' => [],
-            ], 500);
-        }
-    }
+    //     } catch (\Exception $e) {
+    //         \Log::error('Stats Error: ' . $e->getMessage());
+    //         return response()->json([
+    //             'error' => $e->getMessage(),
+    //             'monthly' => $this->getMonthlyStats(),
+    //             'daily' => [],
+    //             'conversations' => [],
+    //         ], 500);
+    //     }
+    // }
 
     /**
      * モード別のシステムプロンプトを返す
@@ -1067,7 +1067,7 @@ PROMPT,
             default => 'あなたは親切で知識豊富なAIアシスタントです。',
         };
     }
-    
+
     /**
      * プリセットプロンプトを取得
      */
@@ -1076,4 +1076,117 @@ PROMPT,
         $presets = \App\Models\PromptPreset::getByMode($mode);
         return response()->json($presets);
     }
+
+    /**
+     * 詳細統計を取得
+     */
+    public function getDetailedStats(Request $request)
+    {
+        $userId = auth()->id();
+        $startDate = now()->startOfMonth();
+        $endDate = now()->endOfMonth();
+
+        // 月間統計
+        $monthly = \App\Models\Message::join('conversations', 'messages.conversation_id', '=', 'conversations.id')
+            ->where('conversations.user_id', $userId)
+            ->where('messages.role', 'assistant')
+            ->whereBetween('messages.created_at', [$startDate, $endDate])
+            ->selectRaw('
+                COUNT(*) as message_count,
+                SUM(messages.input_tokens) as input_tokens,
+                SUM(messages.output_tokens) as output_tokens,
+                SUM(messages.total_tokens) as total_tokens,
+                SUM(messages.cost_usd) as cost_usd
+            ')
+            ->first();
+
+        $monthly->cost_jpy = $monthly->cost_usd * 150;
+
+        // 日別統計
+        $daily = \App\Models\Message::join('conversations', 'messages.conversation_id', '=', 'conversations.id')
+            ->where('conversations.user_id', $userId)
+            ->where('messages.role', 'assistant')
+            ->whereBetween('messages.created_at', [$startDate, $endDate])
+            ->selectRaw('
+                DATE(messages.created_at) as date,
+                SUM(messages.input_tokens) as input_tokens,
+                SUM(messages.output_tokens) as output_tokens,
+                SUM(messages.total_tokens) as total_tokens,
+                SUM(messages.cost_usd) as cost_usd
+            ')
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get()
+            ->map(function ($item) {
+                $item->cost_jpy = $item->cost_usd * 150;
+                return $item;
+            });
+
+        // トップ10会話
+        $conversations = \App\Models\Conversation::where('user_id', $userId)
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->with(['messages' => function ($query) {
+                $query->where('role', 'assistant')
+                      ->select('id', 'conversation_id', 'role', 'input_tokens', 'output_tokens', 'total_tokens', 'cost_usd');
+            }])
+            ->orderBy('total_tokens', 'desc')
+            ->take(10)
+            ->get()
+            ->map(function ($conv) {
+                // メッセージ数を計算
+                $conv->message_count = $conv->messages->count();
+                return $conv;
+            });
+
+        return response()->json([
+            'monthly' => $monthly,
+            'daily' => $daily,
+            'conversations' => $conversations,
+        ]);
+    }
+
+    /**
+     * モード別統計を取得
+     */
+    public function getModeStats(Request $request)
+    {
+        $userId = auth()->id();
+        $startDate = now()->startOfMonth();
+        $endDate = now()->endOfMonth();
+
+        // モード別の月間統計
+        $modeStats = \App\Models\Message::join('conversations', 'messages.conversation_id', '=', 'conversations.id')
+            ->where('conversations.user_id', $userId)
+            ->where('messages.role', 'assistant')
+            ->whereBetween('messages.created_at', [$startDate, $endDate])
+            ->selectRaw('
+                conversations.mode,
+                COUNT(*) as message_count,
+                SUM(messages.input_tokens) as input_tokens,
+                SUM(messages.output_tokens) as output_tokens,
+                SUM(messages.total_tokens) as total_tokens,
+                SUM(messages.cost_usd) as cost_usd
+            ')
+            ->groupBy('conversations.mode')
+            ->get()
+            ->map(function ($stat) {
+                $stat->cost_jpy = $stat->cost_usd * 150;
+                return $stat;
+            });
+
+        // モード別のトップ会話
+        $topConversationsByMode = \App\Models\Conversation::where('user_id', $userId)
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->get()
+            ->groupBy('mode')
+            ->map(function ($conversations) {
+                return $conversations->sortByDesc('total_tokens')->take(5)->values();
+            });
+
+        return response()->json([
+            'mode_stats' => $modeStats,
+            'top_conversations_by_mode' => $topConversationsByMode,
+        ]);
+    }
+
 }

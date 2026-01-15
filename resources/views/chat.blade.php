@@ -1738,6 +1738,147 @@
                 }
             });
         });
+        
+        // 統計モーダルを表示
+        function showStats() {
+            document.getElementById('statsModal').classList.remove('hidden');
+            loadOverallStats();
+        }
+
+        // 統計モーダルを閉じる
+        function closeStats() {
+            document.getElementById('statsModal').classList.add('hidden');
+        }
+
+        // 全体統計を読み込む
+        async function loadOverallStats() {
+            try {
+                const response = await fetch('/stats/tokens/detailed', {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                });
+
+                if (!response.ok) throw new Error('Failed to load stats');
+
+                const data = await response.json();
+                
+                // 月間サマリーを表示
+                displayMonthlySummary(data.monthly);
+                
+                // 日別グラフを表示
+                displayDailyChart(data.daily);
+                
+                // トップ会話を表示
+                displayTopConversations(data.conversations);
+                
+                // コンテンツを表示
+                document.getElementById('statsLoading').classList.add('hidden');
+                document.getElementById('statsContent').classList.remove('hidden');
+            } catch (error) {
+                console.error('統計の読み込みエラー:', error);
+                document.getElementById('statsLoading').innerHTML = 
+                    '<p class="text-center text-red-500">統計の読み込みに失敗しました</p>';
+            }
+        }
+
+        // 月間サマリーを表示
+        function displayMonthlySummary(monthly) {
+            document.getElementById('monthlyMessages').textContent = monthly.message_count?.toLocaleString() || '0';
+            document.getElementById('monthlyTokens').textContent = monthly.total_tokens?.toLocaleString() || '0';
+            document.getElementById('monthlyCost').textContent = '¥' + (Math.round(monthly.cost_jpy) || 0).toLocaleString();
+        }
+
+        // 日別グラフを表示
+        let dailyChartInstance = null;
+        function displayDailyChart(daily) {
+            const ctx = document.getElementById('dailyChart');
+            if (!ctx) return;
+
+            if (dailyChartInstance) {
+                dailyChartInstance.destroy();
+            }
+
+            dailyChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: daily.map(d => new Date(d.date).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })),
+                    datasets: [{
+                        label: 'トークン数',
+                        data: daily.map(d => d.total_tokens),
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // トップ会話を表示
+        function displayTopConversations(conversations) {
+            const container = document.getElementById('topConversations');
+            if (!container) return;
+
+            const modeIcons = {
+                'dev': '💻',
+                'study': '📚',
+                'sales': '💼'
+            };
+
+            container.innerHTML = conversations.map((conv, index) => {
+                const totalTokens = parseInt(conv.total_tokens) || 0;
+                const messageCount = parseInt(conv.message_count) || 0;
+                
+                // メッセージから入出力トークンとコストを集計
+                let inputTokens = 0;
+                let outputTokens = 0;
+                let totalCostUsd = 0;
+                
+                if (conv.messages && Array.isArray(conv.messages)) {
+                    conv.messages.forEach(msg => {
+                        inputTokens += parseInt(msg.input_tokens) || 0;
+                        outputTokens += parseInt(msg.output_tokens) || 0;
+                        totalCostUsd += parseFloat(msg.cost_usd) || 0;
+                    });
+                }
+                
+                const costJpy = Math.round(totalCostUsd * 150);
+
+                return `
+                    <div class="p-3 rounded" style="background: var(--bg-secondary);">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs font-bold" style="color: var(--text-secondary);">#${index + 1}</span>
+                                    <div class="text-sm font-medium" style="color: var(--text-primary);">
+                                        ${modeIcons[conv.mode] || ''} ${conv.title || '無題の会話'}
+                                    </div>
+                                </div>
+                                <div class="text-xs mt-1" style="color: var(--text-secondary);">
+                                    ${messageCount} メッセージ • ${new Date(conv.created_at).toLocaleDateString('ja-JP')}
+                                </div>
+                            </div>
+                            <div class="text-right text-sm" style="color: var(--text-secondary);">
+                                <div class="font-semibold">${totalTokens.toLocaleString()} tokens</div>
+                                <div class="text-xs mt-1">入力: ${inputTokens.toLocaleString()}</div>
+                                <div class="text-xs">出力: ${outputTokens.toLocaleString()}</div>
+                                <div class="text-xs mt-1">¥${costJpy.toLocaleString()}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
 
         // 文字数カウント
         messageInput.addEventListener('input', function() {
@@ -2751,6 +2892,186 @@
             }
         }
 
+        // タブ切り替え
+        function switchStatsTab(tab) {
+            // タブボタンのスタイル更新
+            document.querySelectorAll('.stats-tab-button').forEach(button => {
+                if (button.dataset.tab === tab) {
+                    button.classList.add('active');
+                    button.style.borderColor = '#3b82f6';
+                    button.style.color = '#3b82f6';
+                } else {
+                    button.classList.remove('active');
+                    button.style.borderColor = 'transparent';
+                    button.style.color = 'var(--text-secondary)';
+                }
+            });
+
+            // タブコンテンツの表示切り替え
+            document.querySelectorAll('.stats-tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            document.getElementById(`stats-tab-${tab}`).classList.remove('hidden');
+
+            // モード別タブの場合はデータを読み込む
+            if (tab === 'by-mode') {
+                loadModeStats();
+            }
+        }
+
+        // モード別統計を読み込む
+        async function loadModeStats() {
+            try {
+                const response = await fetch('/stats/tokens/by-mode', {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                });
+
+                if (!response.ok) throw new Error('Failed to load mode stats');
+
+                const data = await response.json();
+                
+                // サマリーカードを表示
+                displayModeSummary(data.mode_stats);
+                
+                // グラフを表示
+                displayModeChart(data.mode_stats);
+                
+                // トップ会話を表示
+                displayModeConversations(data.top_conversations_by_mode);
+            } catch (error) {
+                console.error('モード別統計の読み込みエラー:', error);
+            }
+        }
+
+        // モード別サマリーカードを表示
+        function displayModeSummary(modeStats) {
+            const container = document.getElementById('modeStatsSummary');
+            const modeNames = {
+                'dev': '💻 開発支援',
+                'study': '📚 学習支援',
+                'sales': '💼 営業支援'
+            };
+
+            container.innerHTML = modeStats.map(stat => {
+                const messageCount = parseInt(stat.message_count) || 0;
+                const totalTokens = parseInt(stat.total_tokens) || 0;
+                const costJpy = Math.round(parseFloat(stat.cost_jpy) || 0);
+
+                return `
+                    <div class="p-4 rounded-lg" style="background: var(--bg-secondary);">
+                        <h4 class="font-semibold mb-2" style="color: var(--text-primary);">
+                            ${modeNames[stat.mode] || stat.mode}
+                        </h4>
+                        <div class="space-y-1 text-sm" style="color: var(--text-secondary);">
+                            <div>メッセージ数: <span class="font-medium">${messageCount.toLocaleString()}</span></div>
+                            <div>トークン数: <span class="font-medium">${totalTokens.toLocaleString()}</span></div>
+                            <div>コスト: <span class="font-medium">¥${costJpy.toLocaleString()}</span></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // モード別グラフを表示
+        let modeChartInstance = null;
+        function displayModeChart(modeStats) {
+            const ctx = document.getElementById('modeChart');
+            if (!ctx) return;
+
+            const modeNames = {
+                'dev': '開発支援',
+                'study': '学習支援',
+                'sales': '営業支援'
+            };
+
+            const modeColors = {
+                'dev': '#3b82f6',
+                'study': '#10b981',
+                'sales': '#8b5cf6'
+            };
+
+            // 既存のチャートを破棄
+            if (modeChartInstance) {
+                modeChartInstance.destroy();
+            }
+
+            modeChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: modeStats.map(s => modeNames[s.mode] || s.mode),
+                    datasets: [{
+                        label: 'トークン数',
+                        data: modeStats.map(s => s.total_tokens),
+                        backgroundColor: modeStats.map(s => modeColors[s.mode] || '#6b7280'),
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // モード別トップ会話を表示
+        function displayModeConversations(conversationsByMode) {
+            const container = document.getElementById('modeConversationList');
+            const modeNames = {
+                'dev': '💻 開発支援',
+                'study': '📚 学習支援',
+                'sales': '💼 営業支援'
+            };
+
+            let html = '';
+            
+            Object.entries(conversationsByMode).forEach(([mode, conversations]) => {
+                if (conversations.length === 0) return;
+
+                html += `
+                    <div>
+                        <h4 class="font-semibold mb-2" style="color: var(--text-primary);">
+                            ${modeNames[mode] || mode}
+                        </h4>
+                        <div class="space-y-2">
+                            ${conversations.map(conv => {
+                                const totalTokens = parseInt(conv.total_tokens) || 0;
+                                return `
+                                    <div class="p-3 rounded" style="background: var(--bg-secondary);">
+                                        <div class="flex justify-between items-start">
+                                            <div class="flex-1">
+                                                <div class="text-sm font-medium" style="color: var(--text-primary);">
+                                                    ${conv.title || '無題の会話'}
+                                                </div>
+                                                <div class="text-xs mt-1" style="color: var(--text-secondary);">
+                                                    ${new Date(conv.created_at).toLocaleDateString('ja-JP')}
+                                                </div>
+                                            </div>
+                                            <div class="text-right text-sm" style="color: var(--text-secondary);">
+                                                <div class="font-semibold">${totalTokens.toLocaleString()} tokens</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html || '<p class="text-center" style="color: var(--text-secondary);">データがありません</p>';
+        }
     </script>
 
     <!-- トークン使用量統計モーダル -->
@@ -2774,6 +3095,23 @@
 
                 <!-- 統計コンテンツ -->
                 <div id="statsContent" class="hidden space-y-6">
+
+                    <!-- タブボタン -->
+                    <div class="flex border-b" style="border-color: var(--border-color);">
+                        <button class="stats-tab-button active px-4 py-2 text-sm font-medium border-b-2" 
+                                data-tab="overall" 
+                                onclick="switchStatsTab('overall')"
+                                style="border-color: #3b82f6; color: #3b82f6;">
+                            全体統計
+                        </button>
+                        <button class="stats-tab-button px-4 py-2 text-sm font-medium border-b-2" 
+                                data-tab="by-mode" 
+                                onclick="switchStatsTab('by-mode')"
+                                style="border-color: transparent; color: var(--text-secondary);">
+                            モード別統計
+                        </button>
+                    </div>
+
                     <!-- 月間サマリー -->
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div class="p-4 rounded-lg" style="background: var(--bg-tertiary);">
@@ -2802,6 +3140,31 @@
                     <div>
                         <h3 class="text-lg font-semibold mb-4" style="color: var(--text-primary);">使用量の多い会話 Top 10</h3>
                         <div class="space-y-2" id="conversationList"></div>
+                    </div>
+                    
+                    <!-- モード別統計タブ -->
+                    <div id="stats-tab-by-mode" class="stats-tab-content hidden">
+                        <!-- モード別サマリー -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="modeStatsSummary">
+                            <!-- JavaScriptで動的生成 -->
+                        </div>
+
+                        <!-- モード別グラフ -->
+                        <div class="mt-6">
+                            <h3 class="text-lg font-semibold mb-4" style="color: var(--text-primary);">モード別使用量</h3>
+                            <div class="p-4 rounded-lg" style="background: var(--bg-secondary);">
+                                <canvas id="modeChart" height="80"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- モード別トップ会話 -->
+                        <div class="mt-6">
+                            <h3 class="text-lg font-semibold mb-4" style="color: var(--text-primary);">モード別 使用量の多い会話</h3>
+                            <div class="space-y-4" id="modeConversationList">
+                                <!-- JavaScriptで動的生成 -->
+                            </div>
+                        </div>
+                    
                     </div>
                 </div>
             </div>
