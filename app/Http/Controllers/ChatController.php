@@ -582,7 +582,7 @@ class ChatController extends Controller
     /**
      * 会話をエクスポート
      */
-public function export(Conversation $conversation, Request $request)
+    public function export(Conversation $conversation, Request $request)
     {
         // 自分の会話かチェック
         if ($conversation->user_id !== auth()->id()) {
@@ -975,9 +975,6 @@ public function export(Conversation $conversation, Request $request)
     /**
      * モード別のシステムプロンプトを返す
      */
-/**
-     * モード別のシステムプロンプトを返す
-     */
     private function getSystemPrompt(string $mode): string
     {
         return match($mode) {
@@ -1069,5 +1066,14 @@ PROMPT,
 
             default => 'あなたは親切で知識豊富なAIアシスタントです。',
         };
+    }
+    
+    /**
+     * プリセットプロンプトを取得
+     */
+    public function getPromptPresets(string $mode)
+    {
+        $presets = \App\Models\PromptPreset::getByMode($mode);
+        return response()->json($presets);
     }
 }

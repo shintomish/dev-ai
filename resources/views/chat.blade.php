@@ -1370,6 +1370,16 @@
                     <!-- ファイルリスト表示エリア -->
                     <div id="fileList" style="background: var(--bg-tertiary); color: var(--text-primary);"></div>
                 </div>
+                
+                <!-- プリセットプロンプト -->
+                <div class="mb-3" id="presetSection">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-sm font-medium" style="color: var(--text-primary);">💡 よく使うプロンプト</span>
+                    </div>
+                    <div class="flex flex-wrap gap-2" id="promptPresets">
+                        <!-- プリセットボタンはJavaScriptで動的に生成 -->
+                    </div>
+                </div>
 
                 <!-- メッセージ入力 -->
                 <div class="flex gap-2">
@@ -1665,6 +1675,25 @@
                     // クリックされたタブを active に
                     button.classList.add('active');
                     document.getElementById(tabName).classList.add('active');
+                });
+            });
+    
+            // プリセットプロンプトを読み込み
+            @if($conversation)
+                loadPromptPresets('{{ $conversation->mode }}');
+            @else
+                // 新規会話の場合はdevモードをデフォルト表示
+                loadPromptPresets('dev');
+            @endif
+
+            // プリセットプロンプトを読み込み
+            const currentMode = document.querySelector('input[name="mode"]:checked')?.value || 'dev';
+            loadPromptPresets(currentMode);
+
+            // モード選択時にプリセットを更新
+            document.querySelectorAll('input[name="mode"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    loadPromptPresets(this.value);
                 });
             });
 
@@ -2678,6 +2707,49 @@
                 }
             }
         });
+        
+        // プリセットプロンプトを読み込む
+        async function loadPromptPresets(mode) {
+            try {
+                const response = await fetch(`/prompt-presets/${mode}`, {
+                    headers: {
+                        'Authorization': 'Bearer {{ auth()->user()->currentAccessToken()?->plainTextToken ?? "" }}',
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (!response.ok) return;
+
+                const presets = await response.json();
+                const container = document.getElementById('promptPresets');
+
+                if (!container || presets.length === 0) return;
+
+                container.innerHTML = presets.map(preset => `
+                    <button type="button" 
+                            onclick="insertPrompt(\`${preset.prompt.replace(/`/g, '\\`')}\`)"
+                            class="px-3 py-1.5 text-sm rounded-lg border transition hover:shadow"
+                            style="background: var(--bg-secondary); color: var(--text-primary); border-color: var(--border-color);"
+                            title="${preset.prompt.substring(0, 100)}...">
+                        ${preset.icon} ${preset.title}
+                    </button>
+                `).join('');
+            } catch (error) {
+                console.error('プリセット読み込みエラー:', error);
+            }
+        }
+
+        // プロンプトを入力欄に挿入
+        function insertPrompt(prompt) {
+            const messageInput = document.getElementById('messageInput');
+            if (messageInput) {
+                messageInput.value = prompt;
+                messageInput.focus();
+                // 文字数カウントを更新
+                charCount.textContent = `${messageInput.value.length} / 10000`;
+                sendButton.disabled = false;
+            }
+        }
 
     </script>
 

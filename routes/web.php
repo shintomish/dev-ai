@@ -36,11 +36,13 @@ Route::middleware('auth')->group(function () {
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
                 ->name('logout');
+
+    // プリセットプロンプト
+    Route::get('/prompt-presets/{mode}', [ChatController::class, 'getPromptPresets']);              
 });
 
 
 // トップページ → チャットにリダイレクト
-// トップページ
 Route::get('/', function () {
     if (auth()->check()) {
         return redirect()->route('chat.index');
@@ -69,6 +71,9 @@ Route::middleware(['web', 'auth'])->group(function () {
     // ========== メッセージ送信 ==========
     Route::post('/chat/send', [ChatController::class, 'send'])->name('chat.send');
     Route::post('/chat/send-stream', [ChatController::class, 'sendStream'])->name('chat.send.stream');
+
+    // ========== プリセットプロンプト ==========
+    Route::get('/prompt-presets/{mode}', [ChatController::class, 'getPromptPresets']);
 
 });
 // ========== ブロードキャスティング認証 ==========

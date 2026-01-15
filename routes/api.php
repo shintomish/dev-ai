@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ConversationController;
 use App\Http\Controllers\Api\MessageController;
+use App\Http\Controllers\Api\PromptPresetController;
 use Illuminate\Support\Facades\Broadcast;
 
 /*
@@ -39,16 +40,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/conversations/{conversation}/messages', [MessageController::class, 'store']);
     Route::post('/conversations/{conversation}/messages/stream', [MessageController::class, 'stream']); 
 
-     // ファイルアップロード（NEW!）
+     // ファイルアップロード
     Route::post('/conversations/{conversation}/messages/upload', [MessageController::class, 'uploadWithFile']);
        
     // 統計関連
     Route::get('/stats/monthly', [ConversationController::class, 'monthlyStats']);
     Route::get('/stats/detailed', [ConversationController::class, 'detailedStats']);
 
-    // 検索関連（NEW!）
+    // 検索関連
     Route::get('/search/conversations', [ConversationController::class, 'searchConversations']);
     Route::get('/search/messages', [MessageController::class, 'searchMessages']);
     Route::get('/search/all', [ConversationController::class, 'searchAll']);
+    
+    // プリセットプロンプト
+    Route::get('/prompt-presets/{mode}', [PromptPresetController::class, 'index']);
+    Route::get('/prompt-presets', [PromptPresetController::class, 'all']);
 
 });
