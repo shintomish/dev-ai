@@ -1370,7 +1370,7 @@
                     <!-- ファイルリスト表示エリア -->
                     <div id="fileList" style="background: var(--bg-tertiary); color: var(--text-primary);"></div>
                 </div>
-                
+
                 <!-- プリセットプロンプト -->
                 <div class="mb-3" id="presetSection">
                     <div class="flex items-center gap-2 mb-2">
@@ -1677,7 +1677,7 @@
                     document.getElementById(tabName).classList.add('active');
                 });
             });
-    
+
             // プリセットプロンプトを読み込み
             @if($conversation)
                 loadPromptPresets('{{ $conversation->mode }}');
@@ -1738,7 +1738,7 @@
                 }
             });
         });
-        
+
         // 統計モーダルを表示
         function showStats() {
             document.getElementById('statsModal').classList.remove('hidden');
@@ -1770,22 +1770,22 @@
 
                 console.log('Stats data:', data);
                 console.log('Conversations count:', data.conversations?.length);
-                
+
                 // 月間サマリーを表示
                 displayMonthlySummary(data.monthly);
-                
+
                 // 日別グラフを表示
                 displayDailyChart(data.daily);
-                
+
                 // トップ会話を表示
                 displayTopConversations(data.conversations);
-                
+
                 // コンテンツを表示
                 document.getElementById('statsLoading').classList.add('hidden');
                 document.getElementById('statsContent').classList.remove('hidden');
             } catch (error) {
                 console.error('統計の読み込みエラー:', error);
-                document.getElementById('statsLoading').innerHTML = 
+                document.getElementById('statsLoading').innerHTML =
                     '<p class="text-center text-red-500">統計の読み込みに失敗しました</p>';
             }
         }
@@ -1845,7 +1845,7 @@
             container.innerHTML = conversations.map((conv, index) => {
                 const totalTokens = parseInt(conv.total_tokens) || 0;
                 const messageCount = parseInt(conv.message_count) || 0;
-                
+
                 // メッセージから入出力トークンとコストを集計
                 let inputTokens = 0;
                 let outputTokens = 0;
@@ -1863,24 +1863,24 @@
                             cost_usd: msg.cost_usd,
                             cost_usd_type: typeof msg.cost_usd
                         });
-                        
+
                         inputTokens += parseInt(msg.input_tokens) || 0;
                         outputTokens += parseInt(msg.output_tokens) || 0;
-                        
+
                         const msgCost = parseFloat(msg.cost_usd);
                         console.log(`Parsed cost: ${msgCost}, isNaN: ${isNaN(msgCost)}`);
-                        
+
                         if (!isNaN(msgCost)) {
                             totalCostUsd += msgCost;
                         }
                     });
                 }
-                
+
                 console.log('Total input:', inputTokens);
                 console.log('Total output:', outputTokens);
                 console.log('Total cost USD:', totalCostUsd);
                 console.log('Cost JPY:', Math.round(totalCostUsd * 155));
-                
+
                 const costJpy = Math.round(totalCostUsd * 155);
 
                 return `
@@ -2826,8 +2826,8 @@
         function renderConversationList(conversations) {
             const listContainer = document.getElementById('conversationList');
 
-            console.log('conversationList要素:', listContainer);  // デバッグ
-            console.log('親要素:', listContainer?.parentElement?.id);  // デバッグ
+            console.log('conversationList要素:', listContainer);
+            console.log('親要素:', listContainer?.parentElement?.id);
 
             if (!listContainer) {
                 console.error('会話リストコンテナが見つかりません');
@@ -2835,35 +2835,72 @@
             }
 
             if (!conversations || conversations.length === 0) {
-                listContainer.innerHTML = '<p style="color: var(--text-secondary);" class="text-center py-4">データがありません</p>';
+                listContainer.innerHTML = '<p style="color: #6b7280;" class="text-center py-4">データがありません</p>';
                 return;
             }
 
-            listContainer.innerHTML = conversations.map((conv, index) => `
-                <div class="p-4 rounded-lg hover:bg-opacity-80 transition" style="background: var(--bg-tertiary);">
-                    <div class="flex items-start justify-between">
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-2">
-                                <span class="text-lg font-bold" style="color: var(--text-secondary);">#${index + 1}</span>
-                                <a href="/chat?conversation=${conv.id}" class="text-sm font-medium hover:underline truncate" style="color: var(--text-primary);" onclick="closeStatsModal()">
-                                    ${conv.title || '無題の会話'}
-                                </a>
+            // 🌓 ダークモード対応
+            const isDark = document.documentElement.classList.contains('dark');
+            const colors = {
+                primary: isDark ? '#e5e7eb' : '#111827',
+                secondary: isDark ? '#9ca3af' : '#6b7280',
+                bg: isDark ? '#374151' : '#f3f4f6',
+                border: isDark ? '#4b5563' : '#e5e7eb'
+            };
+
+            listContainer.innerHTML = conversations.map((conv, index) => {
+                // 🔧 コスト計算を修正
+                const totalTokens = parseInt(conv.total_tokens) || 0;
+                const costUsd = parseFloat(conv.total_cost_usd) || 0;
+                const costJpy = costUsd * 155; // 為替レート
+                const messageCount = conv.message_count || 0;
+
+                // メッセージ詳細から入出力トークンを取得
+                let inputTokens = 0;
+                let outputTokens = 0;
+
+                if (conv.messages && conv.messages.length > 0) {
+                    inputTokens = conv.messages.reduce((sum, msg) => sum + (parseInt(msg.input_tokens) || 0), 0);
+                    outputTokens = conv.messages.reduce((sum, msg) => sum + (parseInt(msg.output_tokens) || 0), 0);
+                }
+
+                return `
+                    <div class="p-4 rounded-lg hover:shadow-sm transition"
+                        style="background: ${colors.bg}; border: 1px solid ${colors.border};">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-lg font-bold" style="color: ${colors.secondary};">#${index + 1}</span>
+                                    <a href="/chat?conversation=${conv.id}"
+                                    class="text-sm font-medium hover:underline truncate"
+                                    style="color: ${colors.primary};"
+                                    onclick="closeStatsModal()">
+                                        ${conv.title || '無題の会話'}
+                                    </a>
+                                </div>
+                                <div class="flex gap-4 mt-2 text-xs" style="color: ${colors.secondary};">
+                                    <span>📊 ${formatNumber(totalTokens)} tokens</span>
+                                    <span>💬 ${messageCount} メッセージ</span>
+                                </div>
                             </div>
-                            <div class="flex gap-4 mt-2 text-xs" style="color: var(--text-secondary);">
-                                <span>📊 ${formatNumber(conv.total_tokens || 0)} tokens</span>
-                                <span>💬 ${conv.message_count || 0} メッセージ</span>
-                            </div>
-                        </div>
-                        <div class="text-right ml-4">
-                            <div class="text-lg font-bold" style="color: var(--text-primary);">¥${(conv.cost_jpy || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}</div>
-                            <div class="text-xs" style="color: var(--text-secondary);">
-                                入力: ${formatNumber(conv.input_tokens || 0)}<br>
-                                出力: ${formatNumber(conv.output_tokens || 0)}
+                            <div class="text-right ml-4">
+                                <div class="text-lg font-bold" style="color: ${colors.primary};">
+                                    ¥${costJpy.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                </div>
+                                <div class="text-xs mt-1" style="color: ${colors.secondary};">
+                                    $${costUsd.toFixed(4)}
+                                </div>
+                                ${(inputTokens > 0 || outputTokens > 0) ? `
+                                    <div class="text-xs mt-1" style="color: ${colors.secondary};">
+                                        入力: ${formatNumber(inputTokens)}<br>
+                                        出力: ${formatNumber(outputTokens)}
+                                    </div>
+                                ` : ''}
                             </div>
                         </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
 
             console.log('会話リスト描画完了');
         }
@@ -2877,7 +2914,7 @@
                 }
             }
         });
-        
+
         // プリセットプロンプトを読み込む
         async function loadPromptPresets(mode) {
             try {
@@ -2896,7 +2933,7 @@
                 if (!container || presets.length === 0) return;
 
                 container.innerHTML = presets.map(preset => `
-                    <button type="button" 
+                    <button type="button"
                             onclick="insertPrompt(\`${preset.prompt.replace(/`/g, '\\`')}\`)"
                             class="px-3 py-1.5 text-sm rounded-lg border transition hover:shadow"
                             style="background: var(--bg-secondary); color: var(--text-primary); border-color: var(--border-color);"
@@ -2950,7 +2987,10 @@
 
         // モード別統計を読み込む
         async function loadModeStats() {
+                console.log('🚀 loadModeStats() called');
+
             try {
+                console.log('📡 Fetching from /stats/tokens/by-mode');
                 const response = await fetch('/stats/tokens/by-mode', {
                     headers: {
                         'Accept': 'application/json',
@@ -2958,16 +2998,23 @@
                     }
                 });
 
+                console.log('📥 Response status:', response.status);
+
                 if (!response.ok) throw new Error('Failed to load mode stats');
 
                 const data = await response.json();
-                
+
+                console.log('📦 Full API response:', data);
+                console.log('📊 top_conversations_by_mode:', data.top_conversations_by_mode);
+
                 // サマリーカードを表示
                 displayModeSummary(data.mode_stats);
-                
+
                 // グラフを表示
                 displayModeChart(data.mode_stats);
-                
+
+                console.log('!! Display function call !!');
+
                 // トップ会話を表示
                 displayModeConversations(data.top_conversations_by_mode);
             } catch (error) {
@@ -3056,7 +3103,26 @@
 
         // モード別トップ会話を表示
         function displayModeConversations(conversationsByMode) {
+            console.log('💡 Display function called');
+            console.log('📊 Data received:', conversationsByMode);
+
             const container = document.getElementById('modeConversationList');
+
+            if (!container) {
+                console.error('❌ Container not found: #modeConversationList');
+                return;
+            }
+
+            // 🌓 ダークモード対応の色定義
+            const isDark = document.documentElement.classList.contains('dark');
+            const colors = {
+                heading: isDark ? '#f9fafb' : '#1f2937',
+                text: isDark ? '#e5e7eb' : '#111827',
+                secondary: isDark ? '#9ca3af' : '#6b7280',
+                bg: isDark ? '#374151' : '#f3f4f6',
+                border: isDark ? '#4b5563' : '#e5e7eb'
+            };
+
             const modeNames = {
                 'dev': '💻 開発支援',
                 'study': '📚 学習支援',
@@ -3064,31 +3130,57 @@
             };
 
             let html = '';
-            
+
             Object.entries(conversationsByMode).forEach(([mode, conversations]) => {
                 if (conversations.length === 0) return;
 
                 html += `
-                    <div>
-                        <h4 class="font-semibold mb-2" style="color: var(--text-primary);">
+                    <div class="mb-4">
+                        <h4 class="font-semibold mb-2" style="color: ${colors.heading};">
                             ${modeNames[mode] || mode}
                         </h4>
                         <div class="space-y-2">
                             ${conversations.map(conv => {
                                 const totalTokens = parseInt(conv.total_tokens) || 0;
+                                const costUsd = parseFloat(conv.total_cost_usd) || 0;
+                                const costJpy = costUsd * 155;
+                                const messageCount = conv.message_count || 0;
+                                const inputTokens = conv.messages?.[0]?.input_tokens || 0;
+                                const outputTokens = conv.messages?.[0]?.output_tokens || 0;
+
                                 return `
-                                    <div class="p-3 rounded" style="background: var(--bg-secondary);">
+                                    <div class="p-3 rounded hover:shadow-md transition-shadow"
+                                        style="background: ${colors.bg}; border: 1px solid ${colors.border};">
                                         <div class="flex justify-between items-start">
                                             <div class="flex-1">
-                                                <div class="text-sm font-medium" style="color: var(--text-primary);">
+                                                <div class="text-sm font-medium" style="color: ${colors.text};">
                                                     ${conv.title || '無題の会話'}
                                                 </div>
-                                                <div class="text-xs mt-1" style="color: var(--text-secondary);">
-                                                    ${new Date(conv.created_at).toLocaleDateString('ja-JP')}
+                                                <div class="text-xs mt-1" style="color: ${colors.secondary};">
+                                                    ${new Date(conv.created_at).toLocaleDateString('ja-JP', {
+                                                        year: 'numeric',
+                                                        month: 'short',
+                                                        day: 'numeric'
+                                                    })}
+                                                    · ${messageCount} メッセージ
                                                 </div>
+                                                ${inputTokens > 0 ? `
+                                                    <div class="text-xs mt-1" style="color: ${colors.secondary};">
+                                                        入力: ${inputTokens.toLocaleString()}
+                                                        / 出力: ${outputTokens.toLocaleString()}
+                                                    </div>
+                                                ` : ''}
                                             </div>
-                                            <div class="text-right text-sm" style="color: var(--text-secondary);">
-                                                <div class="font-semibold">${totalTokens.toLocaleString()} tokens</div>
+                                            <div class="text-right text-sm">
+                                                <div class="font-semibold" style="color: ${colors.text};">
+                                                    ${totalTokens.toLocaleString()} tokens
+                                                </div>
+                                                <div class="text-xs mt-1" style="color: ${colors.secondary};">
+                                                    $${costUsd.toFixed(4)}
+                                                </div>
+                                                <div class="text-xs" style="color: ${colors.secondary};">
+                                                    (¥${costJpy.toFixed(2)})
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -3099,7 +3191,8 @@
                 `;
             });
 
-            container.innerHTML = html || '<p class="text-center" style="color: var(--text-secondary);">データがありません</p>';
+            container.innerHTML = html || `<p class="text-center" style="color: ${colors.secondary};">データがありません</p>`;
+            console.log('✅ HTML injected');
         }
     </script>
 
@@ -3127,14 +3220,14 @@
 
                     <!-- タブボタン -->
                     <div class="flex border-b" style="border-color: var(--border-color);">
-                        <button class="stats-tab-button active px-4 py-2 text-sm font-medium border-b-2" 
-                                data-tab="overall" 
+                        <button class="stats-tab-button active px-4 py-2 text-sm font-medium border-b-2"
+                                data-tab="overall"
                                 onclick="switchStatsTab('overall')"
                                 style="border-color: #3b82f6; color: #3b82f6;">
                             全体統計
                         </button>
-                        <button class="stats-tab-button px-4 py-2 text-sm font-medium border-b-2" 
-                                data-tab="by-mode" 
+                        <button class="stats-tab-button px-4 py-2 text-sm font-medium border-b-2"
+                                data-tab="by-mode"
                                 onclick="switchStatsTab('by-mode')"
                                 style="border-color: transparent; color: var(--text-secondary);">
                             モード別統計
@@ -3170,7 +3263,7 @@
                         <h3 class="text-lg font-semibold mb-4" style="color: var(--text-primary);">使用量の多い会話 Top 10</h3>
                         <div class="space-y-2" id="conversationList"></div>
                     </div>
-                    
+
                     <!-- モード別統計タブ -->
                     <div id="stats-tab-by-mode" class="stats-tab-content hidden">
                         <!-- モード別サマリー -->
@@ -3193,7 +3286,7 @@
                                 <!-- JavaScriptで動的生成 -->
                             </div>
                         </div>
-                    
+
                     </div>
                 </div>
             </div>
