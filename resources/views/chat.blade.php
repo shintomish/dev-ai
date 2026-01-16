@@ -3194,6 +3194,39 @@
             container.innerHTML = html || `<p class="text-center" style="color: ${colors.secondary};">データがありません</p>`;
             console.log('✅ HTML injected');
         }
+
+        // Pusherでリアルタイム更新をリッスン
+        @if($conversation ?? null)
+        window.Echo.private('conversation.{{ $conversation->id }}')
+            .listen('.message.created', (e) => {
+                console.log('新しいメッセージを受信:', e);
+                
+                // メッセージをチャットに追加
+                addMessageToChat(e);
+                
+                // 最新のスクロール位置に移動
+                const chatMessages = document.getElementById('chatMessages');
+                if (chatMessages) {
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }
+            });
+
+        // メッセージをチャットに追加する関数
+        function addMessageToChat(messageData) {
+            const chatMessages = document.getElementById('chatMessages');
+            if (!chatMessages) return;
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${messageData.role}`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.textContent = messageData.content;
+            
+            messageDiv.appendChild(contentDiv);
+            chatMessages.appendChild(messageDiv);
+        }
+        @endif
     </script>
 
     <!-- トークン使用量統計モーダル -->

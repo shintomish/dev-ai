@@ -509,9 +509,12 @@ class MessageController extends Controller
                 'total_tokens' => $totalTokens,
             ]);
 
+            // イベントを発火（リアルタイム更新用）
+            event(new MessageCreated($assistantMessage));
+
             // コスト計算
             $inputCost = ($inputTokens ?? 0) / 1_000_000 * 3;
-            $outputCost = ($outputTokens ?? 0) / 1_000_000 * 15;
+            $outputCost = ($outputTokens ?? 0) / 1_000_000 * 15.5;
             $totalCost = $inputCost + $outputCost;
 
             return response()->json([
