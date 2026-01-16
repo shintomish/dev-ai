@@ -48,7 +48,7 @@ class Message extends Model
         }
 
         $inputCost = ($this->input_tokens ?? 0) / 1_000_000 * 3;
-        $outputCost = ($this->output_tokens ?? 0) / 1_000_000 * 15;
+        $outputCost = ($this->output_tokens ?? 0) / 1_000_000 * 15.5;
 
         return $inputCost + $outputCost;
     }
