@@ -139,6 +139,9 @@ class ChatController extends Controller
             'content' => $messageText,
         ]);
 
+        // ★ ユーザーメッセージのリアルタイム配信
+        event(new \App\Events\MessageCreated($userMessage));
+
         \Log::info('ユーザーメッセージ保存 - ID: ' . $userMessage->id);
 
         // 5. ファイルアップロード処理
@@ -372,6 +375,9 @@ class ChatController extends Controller
                 'role' => 'user',
                 'content' => $messageText,
             ]);
+
+            // ★ ユーザーメッセージのリアルタイム配信
+            event(new \App\Events\MessageCreated($userMessage));
 
             // 会話履歴を取得
             $messages = $conversation->messages()
