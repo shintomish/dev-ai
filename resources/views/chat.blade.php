@@ -37,6 +37,43 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
     <style>
+
+        /* ローディングドットアニメーション */
+        .loading-dots {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-left: 4px;
+        }
+        
+        .loading-dots span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: currentColor;
+            opacity: 0.4;
+            animation: loading-bounce 1.4s infinite ease-in-out both;
+        }
+        
+        .loading-dots span:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+        
+        .loading-dots span:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+        
+        @keyframes loading-bounce {
+            0%, 80%, 100% {
+                transform: scale(0.8);
+                opacity: 0.4;
+            }
+            40% {
+                transform: scale(1.2);
+                opacity: 1;
+            }
+        }
+
         /* ===== ダークモード用CSS変数 ===== */
         :root {
             --bg-primary: #ffffff;
@@ -2008,7 +2045,12 @@
                     mermaid.init(undefined, element);
                 });
             } else {
-                contentDiv.textContent = content;
+                // ローディング中の場合はアニメーション付きドットを表示
+                if (isLoading) {
+                    contentDiv.innerHTML = `考え中<span class="loading-dots"><span></span><span></span><span></span></span>`;
+                } else {
+                    contentDiv.textContent = content;
+                }
                 messageDiv.appendChild(contentDiv);
                 chatMessages.appendChild(messageDiv);
             }
