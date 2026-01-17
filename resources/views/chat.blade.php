@@ -872,6 +872,8 @@
             --tw-ring-color: #2563eb;
         }
     </style>
+    <link rel="stylesheet" href="{{ asset('build/assets/app-BZFh1p9P.css') }}">
+    <script type="module" src="{{ asset('build/assets/app-CcN0poac.js') }}"></script>
 </head>
 <body>
 
@@ -3194,40 +3196,77 @@
             container.innerHTML = html || `<p class="text-center" style="color: ${colors.secondary};">データがありません</p>`;
             console.log('✅ HTML injected');
         }
-
-        // Pusherでリアルタイム更新をリッスン
+    
         @if($conversation ?? null)
-        window.Echo.private('conversation.{{ $conversation->id }}')
-            .listen('.message.created', (e) => {
-                console.log('新しいメッセージを受信:', e);
+        // Pusherでリアルタイム更新をリッスン
+        (function initializeEcho() {
+            console.log('? スクリプト実行開始');
+            
+            // Echoが読み込まれるまで待つ
+            if (typeof window.Echo === 'undefined') {
+                console.log('? Echoを待機中...');
+                setTimeout(initializeEcho, 100);
+                return;
+            }
+            
+            console.log('? Echo初期化開始 - Conversation ID: {{ $conversation->id }}');
+            
+            const channel = window.Echo.private('conversation.{{ $conversation->id }}');
+            console.log('? チャンネル登録完了:', channel);
+            
+            // 3218行目の後に重複防止ロジックを追加
+            channel.listen('.message.created', (e) => {
+                console.log('? 新しいメッセージを受信:', e);
                 
-                // メッセージをチャットに追加
+                // ★ 自分が送信したメッセージは既に表示されているのでスキップ
+                const now = Date.now();
+                if (window.lastMessageSentTime && (now - window.lastMessageSentTime) < 3000) {
+                    console.log('?? 自分の送信直後なのでスキップ');
+                    return;
+                }
+                
                 addMessageToChat(e);
-                
-                // 最新のスクロール位置に移動
                 const chatMessages = document.getElementById('chatMessages');
                 if (chatMessages) {
                     chatMessages.scrollTop = chatMessages.scrollHeight;
                 }
             });
-
-        // メッセージをチャットに追加する関数
-        function addMessageToChat(messageData) {
-            const chatMessages = document.getElementById('chatMessages');
-            if (!chatMessages) return;
-            
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${messageData.role}`;
-            
-            const contentDiv = document.createElement('div');
-            contentDiv.className = 'message-content';
-            contentDiv.textContent = messageData.content;
-            
-            messageDiv.appendChild(contentDiv);
-            chatMessages.appendChild(messageDiv);
-        }
+ 
+            // メッセージをチャットに追加する関数
+            function addMessageToChat(messageData) {
+                const chatMessages = document.getElementById('chatMessages');
+                if (!chatMessages) {
+                        console.error('? chatMessages要素が見つかりません');
+                        return;
+                }
+                
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${messageData.role}`;
+                
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'message-content';
+                
+                // ★ Markdownをレンダリング
+                if (typeof marked !== 'undefined') {
+                        contentDiv.innerHTML = marked.parse(messageData.content);
+                        // コードハイライト適用
+                        contentDiv.querySelectorAll('pre code').forEach((block) => {
+                            if (typeof hljs !== 'undefined') {
+                                    hljs.highlightElement(block);
+                            }
+                        });
+                } else {
+                        contentDiv.textContent = messageData.content;
+                }
+                
+                messageDiv.appendChild(contentDiv);
+                chatMessages.appendChild(messageDiv);
+                console.log('? メッセージ追加完了');
+            }
+        })();
         @endif
-    </script>
+
+        </script>
 
     <!-- トークン使用量統計モーダル -->
     <div id="statsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onclick="closeStatsModal(event)">

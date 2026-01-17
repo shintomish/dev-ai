@@ -284,6 +284,9 @@ class ChatController extends Controller
                     'cost_usd' => $costUsd,
                 ]);
 
+                // ★ リアルタイム更新用のイベントを発火
+                event(new \App\Events\MessageCreated($assistantMessage));
+
                 // 会話の合計トークン数とコストを更新
                 $conversation->increment('total_tokens', $totalTokens ?? 0);
                 $conversation->increment('total_cost_usd', $costUsd);
@@ -458,11 +461,13 @@ class ChatController extends Controller
                     }
 
                     // アシスタントメッセージを保存
-                    $conversation->messages()->create([
+                    $assistantMessage = $conversation->messages()->create([
                         'role' => 'assistant',
                         'content' => $fullResponse,
                     ]);
 
+                    // ★ リアルタイム更新用のイベントを発火
+                    event(new \App\Events\MessageCreated($assistantMessage));
                     // 完了通知
                     echo "data: " . json_encode([
                         'done' => true,
