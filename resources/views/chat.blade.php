@@ -2261,6 +2261,7 @@
 
         // 通常のメッセージ送信
         async function handleNormalResponse(message, mode, conversationId) {
+            window.lastMessageSentTime = Date.now(); // ★ 送信時刻を記録
             const loadingId = appendMessage('assistant', '考え中...', true);
 
             try {
