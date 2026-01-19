@@ -1,3 +1,54 @@
+#!/bin/bash
+
+# カラー定義
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+echo -e "${BLUE}=== Laravel完全日本語化スクリプト ===${NC}\n"
+
+# プロジェクトルート確認
+if [ ! -f "artisan" ]; then
+    echo -e "${RED}エラー: Laravelプロジェクトのルートで実行してください${NC}"
+    exit 1
+fi
+
+echo -e "${BLUE}1. 言語ファイルディレクトリを作成しています...${NC}"
+mkdir -p lang/ja
+mkdir -p resources/lang/ja
+
+echo -e "${GREEN}✓ ディレクトリを作成しました${NC}\n"
+
+# auth.php
+echo -e "${BLUE}2. lang/ja/auth.php を作成中...${NC}"
+cat > lang/ja/auth.php << 'EOF'
+<?php
+
+return [
+    'failed' => 'メールアドレスまたはパスワードが正しくありません。',
+    'password' => 'パスワードが正しくありません。',
+    'throttle' => 'ログイン試行回数が多すぎます。:seconds秒後に再試行してください。',
+];
+EOF
+
+# passwords.php
+echo -e "${BLUE}3. lang/ja/passwords.php を作成中...${NC}"
+cat > lang/ja/passwords.php << 'EOF'
+<?php
+
+return [
+    'reset' => 'パスワードをリセットしました。',
+    'sent' => 'パスワードリセット用のリンクをメールで送信しました。',
+    'throttled' => 'しばらく待ってから再度お試しください。',
+    'token' => 'このパスワードリセットトークンは無効です。',
+    'user' => 'このメールアドレスに一致するユーザーが見つかりません。',
+];
+EOF
+
+# validation.php
+echo -e "${BLUE}4. lang/ja/validation.php を作成中...${NC}"
+cat > lang/ja/validation.php << 'EOF'
 <?php
 
 return [
@@ -145,3 +196,64 @@ return [
         'message' => 'メッセージ',
     ],
 ];
+EOF
+
+# pagination.php
+echo -e "${BLUE}5. lang/ja/pagination.php を作成中...${NC}"
+cat > lang/ja/pagination.php << 'EOF'
+<?php
+
+return [
+    'previous' => '&laquo; 前へ',
+    'next' => '次へ &raquo;',
+];
+EOF
+
+# resources/lang/ja にもコピー（Laravel 8以前との互換性）
+echo -e "${BLUE}6. resources/lang/ja にもコピーしています...${NC}"
+cp -r lang/ja/* resources/lang/ja/ 2>/dev/null || true
+
+echo -e "${GREEN}✓ 日本語ファイルを作成しました${NC}\n"
+
+# config/app.php の確認
+echo -e "${BLUE}7. config/app.php の設定を確認しています...${NC}"
+if grep -q "locale.*=>.*'ja'" config/app.php; then
+    echo -e "${GREEN}✓ ロケール設定は既にjaになっています${NC}\n"
+else
+    echo -e "${YELLOW}! config/app.php のロケール設定を手動で変更してください:${NC}"
+    echo "'locale' => 'ja',"
+    echo ""
+fi
+
+# キャッシュクリア
+echo -e "${BLUE}8. キャッシュをクリアしています...${NC}"
+if [ -f "docker-compose.yml" ]; then
+    CONTAINER_ID=$(docker-compose ps -q app 2>/dev/null | head -1)
+    if [ -n "$CONTAINER_ID" ]; then
+        docker exec $CONTAINER_ID php artisan config:clear 2>&1 | tail -1
+        docker exec $CONTAINER_ID php artisan cache:clear 2>&1 | tail -1
+        docker exec $CONTAINER_ID php artisan view:clear 2>&1 | tail -1
+    else
+        php artisan config:clear
+        php artisan cache:clear
+        php artisan view:clear
+    fi
+else
+    php artisan config:clear
+    php artisan cache:clear
+    php artisan view:clear
+fi
+
+echo -e "${GREEN}✓ キャッシュをクリアしました${NC}\n"
+
+echo -e "${GREEN}=== 完了 ===${NC}"
+echo -e "${BLUE}次のステップ:${NC}"
+echo "1. config/app.php を開いて、以下を確認してください："
+echo "   'locale' => 'ja',"
+echo "   'fallback_locale' => 'en',"
+echo ""
+echo "2. ブラウザでアクセスして確認："
+echo "   http://localhost:8000/forgot-password"
+echo ""
+echo "3. もし英語のままの場合、以下を実行："
+echo "   docker-compose restart"

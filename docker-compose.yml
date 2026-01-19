@@ -10,6 +10,7 @@ services:
     volumes:
       - ./:/var/www/html
       - ./docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    user: "${UID}:${GID}"
     ports:
       - "8080:8080"
     networks:
@@ -22,6 +23,13 @@ services:
       - DB_DATABASE=dev_ai
       - DB_USERNAME=devuser
       - DB_PASSWORD=devpass
+      - MAIL_MAILER=smtp
+      - MAIL_HOST=smtp.gmail.com
+      - MAIL_PORT=587
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - MAIL_ENCRYPTION=tls
+      - MAIL_FROM_ADDRESS=aizenedc@aizen-sol.co.jp
 
   webserver:
     image: nginx:alpine
