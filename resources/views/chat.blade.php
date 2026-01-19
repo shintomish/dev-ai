@@ -2287,7 +2287,7 @@
                 document.getElementById(loadingId)?.remove();
 
                 if (data.success) {
-                    appendMessage('assistant', data.response);
+                    // appendMessage('assistant', data.response);
 
                     if (data.conversation_id && !conversationIdInput.value) {
                         conversationIdInput.value = data.conversation_id;
@@ -2305,6 +2305,7 @@
 
         // ストリーミング送信
         async function handleStreamingResponse(message, mode, conversationId) {
+            window.lastMessageSentTime = Date.now(); // ★ 送信時刻を記録
             const messageId = appendStreamingMessage();
 
             try {
@@ -3261,10 +3262,10 @@
             channel.listen('.message.created', (e) => {
                 console.log('? 新しいメッセージを受信:', e);
                 
-                // ★ 自分が送信したメッセージは既に表示されているのでスキップ
+                // 自分が送信したメッセージは既に表示されているのでスキップ（5秒間）
                 const now = Date.now();
-                if (window.lastMessageSentTime && (now - window.lastMessageSentTime) < 3000) {
-                    console.log('?? 自分の送信直後なのでスキップ');
+                if (window.lastMessageSentTime && (now - window.lastMessageSentTime) < 5000) {
+                    console.log('⏭️ 自分の送信直後なのでスキップ (role:', e.role, ')');
                     return;
                 }
                 
