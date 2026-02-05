@@ -1420,12 +1420,12 @@
                     </div>
                 </div>
 
-                <!-- メッセージ入力 -->
+                <!-- メッセージ入力 rows="3" -> rows="5" -->
                 <div class="flex gap-2">
                     <textarea id="messageInput"
                             name="message"
                             placeholder="メッセージを入力..."
-                            rows="3"
+                            rows="5"
                             maxlength="10000"
                             class="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                             style="background: var(--input-bg); color: var(--text-primary); border-color: var(--border-color);"
